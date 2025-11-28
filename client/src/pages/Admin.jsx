@@ -26,7 +26,7 @@ export default function Admin() {
     const [results, setResults] = useState({ coding: [], quiz: [] });
     const [existingQuestions, setExistingQuestions] = useState({ coding: [], quiz: [] });
     const [editingQuestion, setEditingQuestion] = useState(null);
-    const [editingType, setEditingType] = useState(null);
+    const [, setEditingType] = useState(null);
     const [studentUsernames, setStudentUsernames] = useState('');
     const [creationResults, setCreationResults] = useState(null);
 

@@ -1,17 +1,14 @@
-CREATE TABLE IF NOT EXISTS blocked_students (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL,
-    reason TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id, exam_id)
-);
+-- Migration: Enable RLS on blocked_students table
+-- Run this in your Supabase SQL Editor if the table already exists
 
 -- Enable Row Level Security
 ALTER TABLE blocked_students ENABLE ROW LEVEL SECURITY;
 
--- Policy: Only admins can view blocked students (using service role)
--- Students cannot see who is blocked
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Service role can manage blocked_students" ON blocked_students;
+DROP POLICY IF EXISTS "Users can check if they are blocked" ON blocked_students;
+
+-- Policy: Only service role (backend) can manage blocked students
 CREATE POLICY "Service role can manage blocked_students" 
 ON blocked_students 
 FOR ALL 
