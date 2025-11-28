@@ -1,0 +1,316 @@
+TASK:
+Build a full examination platform where students can solve both Scilab coding questions and quiz questions (MCQ, true/false, short-answer).
+The Scilab code must execute on my laptop inside a secure Docker sandbox through a local executor service.
+Platform must include:
+
+Student exam interface
+
+Admin dashboard
+
+Node.js backend
+
+Supabase database & Auth
+
+React frontend
+
+Quiz module
+
+Laptop-based executor service
+
+Exam lockdown measures (no returning after starting exam)
+
+1. SYSTEM ARCHITECTURE
+A. Frontend (React)
+
+Provide a complete React app with:
+
+STUDENT FEATURES
+
+Login/Register (Supabase Auth)
+
+Dashboard showing available exams
+
+Exam page with two sections:
+
+Coding Questions Section
+
+Monaco Editor (Scilab syntax)
+
+Run button + output panel
+
+Quiz Section
+
+Question types:
+
+MCQ
+
+True/False
+
+Short Answer
+
+Immediate autosave for each answer
+
+Timer
+
+Full-screen enforced
+
+Cannot go back or reload
+
+Auto-logout if trying to switch tabs/windows
+
+All suspicious behavior logged
+
+ADMIN FEATURES
+
+Create exam
+
+Add questions:
+
+Coding questions
+
+Quiz questions (MCQ, TF, Short Answer)
+
+Upload bulk questions (JSON or CSV)
+
+Start/stop exam
+
+Block/unblock students
+
+Live monitoring of submissions
+
+View scores
+
+View proctoring logs
+
+B. Backend (Node.js + Express)
+
+Implement:
+
+Endpoints for Students
+
+/auth/* (Supabase JWT verify)
+
+/exam/start
+
+/exam/questions (return both coding + quiz)
+
+/exam/run-code
+
+/exam/save-quiz-answer
+
+/exam/submit-all
+
+/exam/proctor-event
+
+Endpoints for Admin
+
+/admin/create-exam
+
+/admin/add-coding-question
+
+/admin/add-quiz-question
+
+/admin/upload-questions-bulk
+
+/admin/start-exam
+
+/admin/stop-exam
+
+/admin/block-user
+
+/admin/unblock-user
+
+/admin/results
+
+/admin/logs
+
+Backend Responsibilities
+
+Verify user not blocked
+
+Verify exam is active
+
+Serve both coding + quiz questions
+
+Validate quiz answers against stored correct options
+
+Store answers in Supabase
+
+Grade quiz questions automatically
+
+Grade coding questions based on Scilab output
+
+Publish scores once exam ends
+
+Record:
+
+tab-switch
+
+fullscreen exit
+
+navigation attempt
+
+copy/paste
+
+run attempts
+
+visibility change
+
+Job Queue
+
+Store coding execution jobs
+
+Executor service will poll /agent/jobs
+
+C. Executor Service (Runs on my laptop)
+
+Build a Node.js service that:
+
+Polls /agent/jobs?agentId=<id>
+
+For each execution job:
+
+Create temp folder
+
+Save script.sci
+
+Start Scilab Docker sandbox
+
+Capture stdout/stderr
+
+POST results to /agent/job-result
+
+Use Docker with:
+
+No network
+
+CPU/memory limits
+
+Non-root user
+
+Timeout
+
+2. SUPABASE DATABASE SCHEMA
+
+Implement tables:
+
+exams
+coding_questions
+quiz_questions
+
+type: mcq | true_false | short
+
+options (array)
+
+correct_answer
+
+submissions
+quiz_submissions
+
+answer
+
+score
+
+blocks
+audit_logs
+3. QUIZ QUESTION TYPES
+
+Coding agent must fully implement:
+
+MCQ
+{
+  "type": "mcq",
+  "question": "Which command is used to clear variables in Scilab?",
+  "options": ["cls", "clear", "reset", "del"],
+  "correct_answer": "clear"
+}
+
+True/False
+{
+  "type": "true_false",
+  "question": "Scilab is open source.",
+  "correct_answer": true
+}
+
+Short Answer
+
+Case-insensitive matching + trim.
+
+4. DELIVERABLES
+
+Coding agent must provide:
+
+A COMPLETE REPOSITORY
+/server     (Node.js + Express)
+/client     (React)
+/executor   (Node + Docker sandbox)
+/database   (SQL migrations)
+/docs       (setup guides)
+
+SERVER MUST INCLUDE
+
+Full quiz module
+
+Full coding-run module
+
+Authentication
+
+Job queue
+
+Logging
+
+Grading engine
+
+CLIENT MUST INCLUDE
+
+Quiz UI components
+
+Coding workspace
+
+Timer
+
+Fullscreen lock
+
+Anti-navigation
+
+Admin console
+
+EXECUTOR MUST INCLUDE
+
+Polling system
+
+Dockerfile for Scilab
+
+Safety constraints
+
+SETUP INSTRUCTIONS
+
+How to deploy backend
+
+How to run executor on laptop
+
+How to set env variables
+
+How to connect with Supabase
+
+Docker build instructions
+
+Running systemd service
+
+5. RULES FOR AGENT
+
+Provide full code
+
+No pseudocode
+
+Use .env for secrets
+
+Project should run out-of-the-box
+
+Use TypeScript if preferred
+
+Use modern React
+
+Avoid unsafe eval
+
+Automatically grade quiz answers

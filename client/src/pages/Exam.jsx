@@ -1,0 +1,217 @@
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import CodingWorkspace from '../components/CodingWorkspace';
+import QuizSection from '../components/QuizSection';
+import { supabase } from '../lib/supabase';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+export default function Exam() {
+    const { examId } = useParams();
+    const [questions, setQuestions] = useState({ coding: [], quiz: [] });
+    const [currentCodingQ] = useState(0); // TODO: Add setter when multiple questions supported
+    const [output, setOutput] = useState('');
+    const [status, setStatus] = useState('idle');
+    const [executionCounts, setExecutionCounts] = useState({});
+    const [error, setError] = useState(null);
+    const [isBlocked, setIsBlocked] = useState(false);
+
+    const fetchQuestions = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            // Check if blocked first
+            if (session?.user?.id) {
+                const blockRes = await fetch(`${API_URL}/exam/check-blocked/${examId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token}`,
+                        'x-user-id': session.user.id
+                    }
+                });
+                if (blockRes.ok) {
+                    const blockData = await blockRes.json();
+                    if (blockData.blocked) {
+                        setIsBlocked(true);
+                        return;
+                    }
+                }
+            }
+
+            const res = await fetch(`${API_URL}/exam/questions/${examId}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+
+            if (!res.ok) {
+                if (res.status === 403) throw new Error('Exam is not active yet');
+                throw new Error('Failed to load exam');
+            }
+
+            const data = await res.json();
+            if (data.coding) setQuestions(data);
+            setError(null);
+
+            // Fetch execution counts
+            if (session?.user?.id) {
+                const countRes = await fetch(`${API_URL}/exam/submission-counts/${examId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token}`,
+                        'x-user-id': session.user.id
+                    }
+                });
+                if (countRes.ok) {
+                    const counts = await countRes.json();
+                    setExecutionCounts(counts);
+                }
+            }
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    useEffect(() => {
+        fetchQuestions();
+
+        // Enforce Fullscreen
+        document.documentElement.requestFullscreen().catch(e => console.log(e));
+
+        // Prevent tab switching
+        const handleVisibilityChange = async () => {
+            if (document.hidden && !isBlocked) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.id) {
+                    await fetch(`${API_URL}/exam/block-user`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
+                        },
+                        body: JSON.stringify({
+                            exam_id: examId,
+                            user_id: session.user.id,
+                            reason: 'Tab switching detected'
+                        })
+                    });
+                    setIsBlocked(true);
+                }
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, [examId, isBlocked]);
+
+    const handleRunCode = async (code) => {
+        const currentQId = questions.coding[currentCodingQ]?.id;
+        const currentCount = executionCounts[currentQId] || 0;
+
+        if (currentCount >= 5) {
+            alert("Execution limit reached (5/5)");
+            return;
+        }
+
+        setStatus('running');
+        setOutput('Job queued...');
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${API_URL}/exam/run-code`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // 'Authorization': ... 
+            },
+            body: JSON.stringify({
+                exam_id: examId,
+                question_id: currentQId,
+                code,
+                user_id: session?.user?.id
+            })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            setStatus('error');
+            setOutput(err.error);
+            return;
+        }
+
+        const { jobId } = await res.json();
+
+        // Update count locally
+        setExecutionCounts(prev => ({
+            ...prev,
+            [currentQId]: (prev[currentQId] || 0) + 1
+        }));
+
+        // Poll for result
+        const interval = setInterval(async () => {
+            const res = await fetch(`${API_URL}/exam/result/${jobId}`);
+            const data = await res.json();
+            if (data.status !== 'pending' && data.status !== 'running') {
+                clearInterval(interval);
+                setStatus(data.status);
+                setOutput(data.output);
+            }
+        }, 2000);
+    };
+
+    const handleQuizAnswer = async (questionId, answer) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`${API_URL}/exam/submit-quiz`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                exam_id: examId,
+                question_id: questionId,
+                answer,
+                user_id: session?.user?.id
+            })
+        });
+    };
+
+    if (isBlocked) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fee2e2', color: '#991b1b' }}>
+                <h1>You have been blocked!</h1>
+                <p>Tab switching or leaving the exam screen is not allowed.</p>
+                <p>Please contact the administrator to unblock you.</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+                <h2>{error}</h2>
+                <button onClick={fetchQuestions} style={{ marginTop: '20px', padding: '10px 20px', fontSize: '1.2em', cursor: 'pointer' }}>Refresh Status</button>
+            </div>
+        );
+    }
+
+    if (!questions.coding.length && !questions.quiz.length) return <div>Loading Exam...</div>;
+
+    const currentQId = questions.coding[currentCodingQ]?.id;
+    const executionsUsed = executionCounts[currentQId] || 0;
+
+    return (
+        <div style={{ display: 'flex', height: '100vh' }}>
+            <div style={{ flex: 1, borderRight: '1px solid #ccc' }}>
+                <QuizSection questions={questions.quiz} onAnswer={handleQuizAnswer} />
+            </div>
+            <div style={{ flex: 2, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '10px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold' }}>Coding Question {currentCodingQ + 1}</span>
+                    <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? '#ef4444' : '#64748b' }}>
+                        Executions: {executionsUsed} / 5
+                    </span>
+                </div>
+                <CodingWorkspace
+                    initialCode={questions.coding[currentCodingQ]?.initial_code}
+                    onRun={handleRunCode}
+                    output={output}
+                    status={status}
+                    disabled={executionsUsed >= 5}
+                />
+            </div>
+        </div>
+    );
+}
