@@ -197,20 +197,35 @@ export default function Exam() {
             <div style={{ flex: 1, borderRight: '1px solid #ccc' }}>
                 <QuizSection questions={questions.quiz} onAnswer={handleQuizAnswer} />
             </div>
-            <div style={{ flex: 2, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '10px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 'bold' }}>Coding Question {currentCodingQ + 1}</span>
-                    <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? '#ef4444' : '#64748b' }}>
-                        Executions: {executionsUsed} / 5
-                    </span>
+            <div style={{ flex: 2, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+                <div style={{ padding: '15px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                    <div>
+                        <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'var(--color-text)' }}>
+                            {questions.coding[currentCodingQ]?.title || `Coding Question ${currentCodingQ + 1}`}
+                        </h2>
+                        <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: 'bold' }}>
+                            Executions: {executionsUsed} / 5
+                        </span>
+                    </div>
+                    {/* Spacer to avoid overlap with fixed theme toggle */}
+                    <div style={{ width: '100px' }}></div>
                 </div>
-                <CodingWorkspace
-                    initialCode={questions.coding[currentCodingQ]?.initial_code}
-                    onRun={handleRunCode}
-                    output={output}
-                    status={status}
-                    disabled={executionsUsed >= 5}
-                />
+
+                <div style={{ padding: '15px 20px', background: 'var(--color-background)', borderBottom: '1px solid var(--color-border)', maxHeight: '150px', overflowY: 'auto', flexShrink: 0 }}>
+                    <p style={{ margin: 0, color: 'var(--color-text)', lineHeight: '1.6' }}>
+                        {questions.coding[currentCodingQ]?.description}
+                    </p>
+                </div>
+
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <CodingWorkspace
+                        initialCode={questions.coding[currentCodingQ]?.initial_code}
+                        onRun={handleRunCode}
+                        output={output}
+                        status={status}
+                        disabled={executionsUsed >= 5}
+                    />
+                </div>
             </div>
         </div>
     );

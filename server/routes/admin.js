@@ -169,12 +169,7 @@ router.get('/blocked-users/:examId', isAdmin, async (req, res) => {
 
     const { data, error } = await supabase
         .from('blocked_students')
-        .select('*, users:user_id(email)') // Assuming user_id links to auth.users, but we might not be able to join on auth schema directly easily depending on permissions.
-        // If auth.users is not accessible, we might need to rely on a public 'profiles' table if it exists.
-        // For this demo, let's assume we can just get the user_id and maybe we have a separate users table or we just show ID.
-        // Actually, let's try to join if we have a public users table. We don't have one in the schema I saw.
-        // Let's just return the data and maybe fetch user details separately or assume we have a way.
-        .eq('exam_id', examId);
+        .select('*')
 
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);

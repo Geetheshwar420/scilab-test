@@ -15,14 +15,26 @@ export default function CodingWorkspace({ initialCode, onRun, output, status }) 
                     theme="vs-dark"
                 />
             </div>
-            <div style={{ height: '150px', background: '#1e1e1e', color: 'white', padding: '10px', overflow: 'auto', borderTop: '1px solid #333' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span>Output:</span>
-                    <button onClick={() => onRun(code)} disabled={status === 'running'}>
+            <div style={{ height: '200px', background: 'var(--color-background)', color: 'var(--color-text)', padding: '15px', overflow: 'auto', borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold' }}>Output Terminal:</span>
+                    <button
+                        onClick={() => onRun(code)}
+                        disabled={status === 'running'}
+                        className="btn btn-primary"
+                        style={{ padding: '5px 15px', fontSize: '0.9rem' }}
+                    >
                         {status === 'running' ? 'Running...' : 'Run Code'}
                     </button>
                 </div>
-                <pre>{output}</pre>
+                <pre style={{
+                    fontFamily: 'monospace',
+                    background: 'rgba(0,0,0,0.2)',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    minHeight: '100px',
+                    whiteSpace: 'pre-wrap'
+                }}>{output || 'Ready to execute...'}</pre>
             </div>
         </div>
     );

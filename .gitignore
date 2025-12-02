@@ -32,6 +32,7 @@ coverage/
 *.tmp
 *.temp
 .cache/
+executor/temp/
 
 # OS files
 Thumbs.db
