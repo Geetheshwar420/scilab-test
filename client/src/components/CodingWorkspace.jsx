@@ -1,7 +1,7 @@
 import Editor from '@monaco-editor/react';
 import { useState } from 'react';
 
-export default function CodingWorkspace({ initialCode, onRun, output, status }) {
+export default function CodingWorkspace({ initialCode, onRun, output, status, imageData }) {
     const [code, setCode] = useState(initialCode || '// Write your Scilab code here\n');
 
     return (
@@ -35,6 +35,16 @@ export default function CodingWorkspace({ initialCode, onRun, output, status }) 
                     minHeight: '100px',
                     whiteSpace: 'pre-wrap'
                 }}>{output || 'Ready to execute...'}</pre>
+                {imageData && (
+                    <div style={{ marginTop: '10px', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+                        <strong style={{ display: 'block', marginBottom: '5px' }}>Generated Graph:</strong>
+                        <img
+                            src={`data:image/png;base64,${imageData}`}
+                            alt="Generated Plot"
+                            style={{ maxWidth: '100%', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

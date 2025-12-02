@@ -156,7 +156,7 @@ router.get('/result/:submissionId', requireAuth, async (req, res) => {
 
     const { data, error } = await supabase
         .from('submissions')
-        .select('status, output, score')
+        .select('status, output, score, image_data')
         .eq('id', submissionId)
         .single();
 

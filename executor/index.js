@@ -37,21 +37,32 @@ const processJob = async (job) => {
     await fs.writeFile(scriptPath, job.code);
 
     // Local Scilab Command
-    // Assumes 'scilab-cli' is in the system PATH
-    // -nwni: No window, no interaction
-    // -f: Execute file
-    // -nb: No banner
-    const scilabCmd = `scilab-cli -nwni -nb -f "${scriptPath}"`;
+    // Found at C:\Program Files\scilab-2026.0.0
+    // Using WScilex-cli.exe for Windows CLI execution
+    const scilabPath = 'C:\\Program Files\\scilab-2026.0.0\\bin\\WScilex-cli.exe';
+    const scilabCmd = `"${scilabPath}" -nwni -nb -f "${scriptPath}"`;
 
     let output = '';
     let status = 'completed';
     let score = 0;
+
+    let imageData = null;
 
     try {
         const { stdout, stderr } = await execPromise(scilabCmd, { timeout: 10000 }); // 10s timeout
         output = stdout + stderr; // Scilab often prints to stdout even for errors, or mixed
 
         console.log(`Job ${job.id} completed`);
+
+        // Check for generated images (e.g., *.png)
+        const files = await fs.readdir(tempDir);
+        const imageFile = files.find(f => f.endsWith('.png'));
+        if (imageFile) {
+            const imagePath = path.join(tempDir, imageFile);
+            const imageBuffer = await fs.readFile(imagePath);
+            imageData = imageBuffer.toString('base64');
+            console.log(`Captured image: ${imageFile}`);
+        }
     } catch (error) {
         output = error.stdout + error.stderr;
         if (error.killed) {
@@ -66,6 +77,7 @@ const processJob = async (job) => {
         await axios.post(`${BACKEND_URL}/agent/job-result`, {
             jobId: job.id,
             output,
+            image: imageData,
             status,
             score
         }, {

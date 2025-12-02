@@ -6,13 +6,19 @@ export const ThemeContext = createContext({
 });
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState('dark');
-
-    // Persist theme in localStorage
-    useEffect(() => {
+    const [theme, setTheme] = useState(() => {
+        // 1. Check local storage
         const saved = localStorage.getItem('theme');
-        if (saved) setTheme(saved);
-    }, []);
+        if (saved) return saved;
+
+        // 2. Check system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+
+        // 3. Default fallback
+        return 'light';
+    });
 
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);

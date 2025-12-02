@@ -56,12 +56,13 @@ router.get('/jobs', requireAgentAuth, async (req, res) => {
 
 // Submit Job Result
 router.post('/job-result', requireAgentAuth, async (req, res) => {
-    const { jobId, output, status, score } = req.body;
+    const { jobId, output, status, score, image } = req.body;
 
     const { data, error } = await supabase
         .from('submissions')
         .update({
             output,
+            image_data: image,
             status,
             score
         })

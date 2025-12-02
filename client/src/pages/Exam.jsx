@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import CodingWorkspace from '../components/CodingWorkspace';
 import QuizSection from '../components/QuizSection';
@@ -11,12 +11,13 @@ export default function Exam() {
     const [questions, setQuestions] = useState({ coding: [], quiz: [] });
     const [currentCodingQ] = useState(0); // TODO: Add setter when multiple questions supported
     const [output, setOutput] = useState('');
+    const [imageData, setImageData] = useState(null);
     const [status, setStatus] = useState('idle');
     const [executionCounts, setExecutionCounts] = useState({});
     const [error, setError] = useState(null);
     const [isBlocked, setIsBlocked] = useState(false);
 
-    const fetchQuestions = async () => {
+    const fetchQuestions = useCallback(async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
 
@@ -37,17 +38,28 @@ export default function Exam() {
                 }
             }
 
+            // Check cache first
+            const cachedData = localStorage.getItem(`exam_questions_${examId}`);
+            if (cachedData) {
+                setQuestions(JSON.parse(cachedData));
+            }
+
             const res = await fetch(`${API_URL}/exam/questions/${examId}`, {
                 headers: { 'Authorization': `Bearer ${session?.access_token}` }
             });
 
             if (!res.ok) {
                 if (res.status === 403) throw new Error('Exam is not active yet');
-                throw new Error('Failed to load exam');
+                // If we have cache, don't throw error, just warn? 
+                // But if we have cache, we already set it.
+                if (!cachedData) throw new Error('Failed to load exam');
+            } else {
+                const data = await res.json();
+                if (data.coding) {
+                    setQuestions(data);
+                    localStorage.setItem(`exam_questions_${examId}`, JSON.stringify(data));
+                }
             }
-
-            const data = await res.json();
-            if (data.coding) setQuestions(data);
             setError(null);
 
             // Fetch execution counts
@@ -66,7 +78,7 @@ export default function Exam() {
         } catch (err) {
             setError(err.message);
         }
-    };
+    }, [examId]);
 
     useEffect(() => {
         fetchQuestions();
@@ -98,7 +110,7 @@ export default function Exam() {
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }, [examId, isBlocked]);
+    }, [examId, isBlocked, fetchQuestions]);
 
     const handleRunCode = async (code) => {
         const currentQId = questions.coding[currentCodingQ]?.id;
@@ -150,8 +162,9 @@ export default function Exam() {
                 clearInterval(interval);
                 setStatus(data.status);
                 setOutput(data.output);
+                setImageData(data.image_data);
             }
-        }, 2000);
+        }, 4000);
     };
 
     const handleQuizAnswer = async (questionId, answer) => {
@@ -223,6 +236,7 @@ export default function Exam() {
                         onRun={handleRunCode}
                         output={output}
                         status={status}
+                        imageData={imageData}
                         disabled={executionsUsed >= 5}
                     />
                 </div>
