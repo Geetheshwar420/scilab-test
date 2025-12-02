@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import './Login.css';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -28,58 +29,31 @@ export default function Login() {
     };
 
     return (
-        <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+        <div className="login-container">
             {/* Left Side - Marketing */}
-            <div style={{
-                flex: 1,
-                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px',
-                color: 'white',
-                position: 'relative'
-            }}>
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-                    opacity: 0.3
-                }} />
+            <div className="login-marketing">
+                <div className="marketing-pattern" />
 
-                <div style={{ zIndex: 1, textAlign: 'center', maxWidth: '500px' }}>
-                    <div style={{
-                        background: 'rgba(255,255,255,0.2)',
-                        padding: '10px 20px',
-                        borderRadius: '20px',
-                        display: 'inline-block',
-                        marginBottom: '20px',
-                        backdropFilter: 'blur(5px)',
-                        fontSize: '0.9rem',
-                        fontWeight: '600'
-                    }}>
+                <div className="marketing-content">
+                    <div className="marketing-badge">
                         Advanced Quiz Platform
                     </div>
-                    <h1 style={{ fontSize: '3.5rem', marginBottom: '1.5rem', lineHeight: 1.1, textShadow: '0 4px 12px rgba(0,0,0,0.1)', background: 'none', WebkitTextFillColor: 'white' }}>
+                    <h1 className="marketing-title">
                         Master Your Skills with Interactive Quizzes
                     </h1>
-                    <p style={{ fontSize: '1.1rem', opacity: 0.9, lineHeight: 1.6 }}>
+                    <p className="marketing-text">
                         Challenge yourself with our comprehensive quiz platform. Track your progress, compete with others, and enhance your knowledge in a secure, monitored environment.
                     </p>
 
-                    <div style={{ display: 'flex', gap: '20px', marginTop: '40px', justifyContent: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.1)', padding: '10px 20px', borderRadius: '12px' }}>
+                    <div className="feature-grid">
+                        <div className="feature-item">
                             <span style={{ fontSize: '1.5rem' }}>🔒</span>
                             <div style={{ textAlign: 'left' }}>
                                 <div style={{ fontWeight: 'bold' }}>Secure Testing</div>
                                 <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>Proctored environment</div>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.1)', padding: '10px 20px', borderRadius: '12px' }}>
+                        <div className="feature-item">
                             <span style={{ fontSize: '1.5rem' }}>📊</span>
                             <div style={{ textAlign: 'left' }}>
                                 <div style={{ fontWeight: 'bold' }}>Real-time Analytics</div>
@@ -91,26 +65,16 @@ export default function Login() {
             </div>
 
             {/* Right Side - Login Form */}
-            <div style={{ flex: 1, background: '#0f172a', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }}>
-                <div className="card" style={{ width: '100%', maxWidth: '450px', padding: '40px' }}>
-                    <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                        <div style={{ fontSize: '3rem', marginBottom: '10px' }}>🎯</div>
-                        <h2 style={{ fontSize: '2rem', marginBottom: '10px' }}>Student Login</h2>
-                        <p style={{ color: '#94a3b8' }}>Enter your credentials to start your quiz</p>
+            <div className="login-form-container">
+                <div className="login-card">
+                    <div className="login-header">
+                        <div className="login-icon">🎯</div>
+                        <h2 className="login-title">Student Login</h2>
+                        <p className="login-subtitle">Enter your credentials to start your quiz</p>
                     </div>
 
                     {error && (
-                        <div style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            color: '#ef4444',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            marginBottom: '20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px'
-                        }}>
+                        <div className="error-message">
                             <span>⚠️</span>
                             {error}
                         </div>
@@ -122,7 +86,7 @@ export default function Login() {
                             <input
                                 type="email"
                                 className="input-field"
-                                placeholder="student@example.com"
+                                placeholder="student@klu.ac.in"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -143,15 +107,14 @@ export default function Login() {
 
                         <button
                             type="submit"
-                            className="btn btn-primary w-full"
-                            style={{ padding: '14px', fontSize: '1.1rem', marginTop: '10px' }}
+                            className="btn login-btn"
                             disabled={loading}
                         >
                             {loading ? 'Logging in...' : 'Start Quiz 🚀'}
                         </button>
                     </form>
 
-                    <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.9rem', color: '#64748b' }}>
+                    <div className="login-footer">
                         Make sure you're in a quiet environment with good internet connection.
                     </div>
                 </div>

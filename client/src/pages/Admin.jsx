@@ -518,7 +518,7 @@ export default function Admin() {
                             Enter student usernames (one per line). Each student will be created with:
                         </p>
                         <ul style={{ color: '#94a3b8', marginLeft: '20px', marginTop: '10px' }}>
-                            <li>Email: <code>username@student.local</code></li>
+                            <li>Email: <code>username@klu.ac.in</code></li>
                             <li>Password: <code>username</code> (same as username)</li>
                             <li>Role: Student</li>
                         </ul>

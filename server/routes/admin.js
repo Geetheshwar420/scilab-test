@@ -230,8 +230,8 @@ router.post('/create-students', isAdmin, async (req, res) => {
     // Create accounts one by one
     for (const username of usernames) {
         try {
-            // Email format: username@student.local (or you can use a real domain)
-            const email = `${username}@student.local`;
+            // Email format: username@klu.ac.in
+            const email = `${username}@klu.ac.in`;
             const password = username; // Password is the same as username
 
             const { data, error } = await supabase.auth.admin.createUser({

@@ -1,0 +1,79 @@
+:root {
+  /* Light Theme (Default) */
+  --color-primary: hsl(210, 70%, 55%);
+  --color-primary-dark: hsl(210, 70%, 45%);
+  --color-background: #e2e8f0;
+  /* Darker gray for better contrast with white card */
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  /* Darker secondary text for visibility */
+  --color-border: #cbd5e1;
+  /* Darker border */
+  --color-input-bg: #ffffff;
+  /* White inputs */
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.1);
+  --color-marketing-start: #2563eb;
+  /* Stronger blue */
+  --color-marketing-end: #7c3aed;
+  /* Stronger purple */
+  --spacing-unit: 0.5rem;
+  --radius-sm: 0.4rem;
+  --radius-md: 0.6rem;
+}
+
+[data-theme='dark'] {
+  --color-primary: hsl(210, 70%, 55%);
+  --color-primary-dark: hsl(210, 70%, 45%);
+  --color-background: hsl(222, 47%, 11%);
+  /* Deep blue/black */
+  --color-surface: hsl(217, 33%, 17%);
+  /* Slate 800 */
+  --color-text: #f1f5f9;
+  /* Slate 50 */
+  --color-text-secondary: #94a3b8;
+  --color-border: #334155;
+  --color-input-bg: #0f172a;
+  /* Dark inputs */
+  --color-error: #f87171;
+  --color-error-bg: rgba(248, 113, 113, 0.1);
+  --color-marketing-start: #1e40af;
+  --color-marketing-end: #5b21b6;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: calc(var(--spacing-unit) * 1.2) calc(var(--spacing-unit) * 2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: var(--color-primary-dark);
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: calc(var(--spacing-unit) * 2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, background-color 0.3s ease;
+  border: 1px solid var(--color-border);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}

@@ -1,0 +1,49 @@
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-unit) calc(var(--spacing-unit) * 2);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.logo {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.nav-links a {
+    margin: 0 var(--spacing-unit);
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.nav-links a:hover {
+    color: var(--color-primary);
+}
+
+.theme-toggle {
+    background: none;
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 1);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+/* Slide‑in animation for mobile menu */
+.nav-links {
+    transition: transform 0.3s ease;
+    transform: translateY(-100%);
+}
+
+.nav-links.open {
+    transform: translateY(0);
+}
