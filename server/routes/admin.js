@@ -204,9 +204,33 @@ router.get('/exam-results/:examId', isAdmin, async (req, res) => {
         .select('*')
         .eq('exam_id', examId);
 
-    if (codingError || quizError) return res.status(500).json({ error: 'Failed to fetch results' });
+    // Fetch all users to map IDs to Emails
+    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
 
-    res.json({ coding: codingSubs, quiz: quizSubs });
+    if (usersError) {
+        console.error('Error fetching users:', usersError);
+        // Continue without emails if user fetch fails
+    }
+
+    const userMap = {};
+    if (users) {
+        users.forEach(u => {
+            userMap[u.id] = u.email;
+        });
+    }
+
+    // Attach emails to submissions
+    const codingWithEmails = codingSubs.map(sub => ({
+        ...sub,
+        email: userMap[sub.user_id] || 'Unknown'
+    }));
+
+    const quizWithEmails = quizSubs.map(sub => ({
+        ...sub,
+        email: userMap[sub.user_id] || 'Unknown'
+    }));
+
+    res.json({ coding: codingWithEmails, quiz: quizWithEmails });
 });
 
 // Bulk Create Student Accounts

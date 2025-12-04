@@ -289,12 +289,24 @@ export default function Admin() {
         const students = {};
 
         results.coding.forEach(r => {
-            if (!students[r.user_id]) students[r.user_id] = { id: r.user_id, codingScore: 0, quizScore: 0, lastActive: r.created_at };
+            if (!students[r.user_id]) students[r.user_id] = {
+                id: r.user_id,
+                email: r.email, // Capture email
+                codingScore: 0,
+                quizScore: 0,
+                lastActive: r.created_at
+            };
             students[r.user_id].codingScore += (r.score || 0);
         });
 
         results.quiz.forEach(r => {
-            if (!students[r.user_id]) students[r.user_id] = { id: r.user_id, codingScore: 0, quizScore: 0, lastActive: r.created_at };
+            if (!students[r.user_id]) students[r.user_id] = {
+                id: r.user_id,
+                email: r.email, // Capture email
+                codingScore: 0,
+                quizScore: 0,
+                lastActive: r.created_at
+            };
             students[r.user_id].quizScore += (r.score || 0);
         });
 
@@ -690,7 +702,7 @@ export default function Admin() {
                                     ) : (
                                         getStudentResults().map(student => (
                                             <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{student.id.substring(0, 8)}...</td>
+                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{student.email || student.id}</td>
                                                 <td style={{ padding: '15px' }}>{student.codingScore}</td>
                                                 <td style={{ padding: '15px' }}>{student.quizScore}</td>
                                                 <td style={{ padding: '15px', fontWeight: 'bold', color: '#4ade80' }}>{student.codingScore + student.quizScore}</td>

@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export default function Exam() {
     const { examId } = useParams();
     const [questions, setQuestions] = useState({ coding: [], quiz: [] });
-    const [currentCodingQ] = useState(0); // TODO: Add setter when multiple questions supported
+    const [currentCodingQ, setCurrentCodingQ] = useState(0);
     const [output, setOutput] = useState('');
     const [imageData, setImageData] = useState(null);
     const [status, setStatus] = useState('idle');
@@ -111,10 +111,31 @@ export default function Exam() {
         };
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
-        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+        // Disable Copy/Paste/Context Menu
+        const preventCopyPaste = (e) => {
+            e.preventDefault();
+            alert("Copy/Paste is disabled during the exam!");
+        };
+
+        const preventContextMenu = (e) => {
+            e.preventDefault();
+        };
+
+        document.addEventListener('copy', preventCopyPaste);
+        document.addEventListener('cut', preventCopyPaste);
+        document.addEventListener('paste', preventCopyPaste);
+        document.addEventListener('contextmenu', preventContextMenu);
+
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            document.removeEventListener('copy', preventCopyPaste);
+            document.removeEventListener('cut', preventCopyPaste);
+            document.removeEventListener('paste', preventCopyPaste);
+            document.removeEventListener('contextmenu', preventContextMenu);
+        };
     }, [examId, isBlocked, fetchQuestions]);
 
-    const handleRunCode = async (code) => {
+    const handleRunCode = async (code, input) => {
         const currentQId = questions.coding[currentCodingQ]?.id;
         const currentCount = executionCounts[currentQId] || 0;
 
@@ -137,6 +158,8 @@ export default function Exam() {
                 exam_id: examId,
                 question_id: currentQId,
                 code,
+                input, // Send standard input
+                execution_mode: executionMode, // 'server' or 'local'
                 user_id: session?.user?.id
             })
         });
@@ -183,6 +206,32 @@ export default function Exam() {
         });
     };
 
+    const [activeTab, setActiveTab] = useState('coding'); // 'coding' or 'quiz'
+    const [executionMode, setExecutionMode] = useState('server'); // 'server' or 'local'
+
+    const handleSubmitCode = async (code, input) => {
+        const currentQId = questions.coding[currentCodingQ]?.id;
+        const { data: { session } } = await supabase.auth.getSession();
+
+        const res = await fetch(`${API_URL}/exam/save-code`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                exam_id: examId,
+                question_id: currentQId,
+                code,
+                input, // Save input as well
+                user_id: session?.user?.id
+            })
+        });
+
+        if (res.ok) {
+            alert("Code submitted successfully!");
+        } else {
+            alert("Failed to submit code.");
+        }
+    };
+
     if (isBlocked) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fee2e2', color: '#991b1b' }}>
@@ -208,46 +257,138 @@ export default function Exam() {
     const executionsUsed = executionCounts[currentQId] || 0;
 
     return (
-        <div style={{ display: 'flex', height: '100vh' }}>
-            <div style={{ flex: 1, borderRight: '1px solid #ccc' }}>
-                <QuizSection questions={questions.quiz} onAnswer={handleQuizAnswer} />
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            {/* Mobile Tab Navigation */}
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+                <button
+                    onClick={() => setActiveTab('coding')}
+                    style={{
+                        flex: 1,
+                        padding: '15px',
+                        background: activeTab === 'coding' ? 'var(--color-background)' : 'transparent',
+                        border: 'none',
+                        borderBottom: activeTab === 'coding' ? '2px solid var(--color-primary)' : 'none',
+                        color: activeTab === 'coding' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Coding Section
+                </button>
+                <button
+                    onClick={() => setActiveTab('quiz')}
+                    style={{
+                        flex: 1,
+                        padding: '15px',
+                        background: activeTab === 'quiz' ? 'var(--color-background)' : 'transparent',
+                        border: 'none',
+                        borderBottom: activeTab === 'quiz' ? '2px solid var(--color-primary)' : 'none',
+                        color: activeTab === 'quiz' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Quiz Section
+                </button>
             </div>
-            <div style={{ flex: 2, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-                <div style={{ padding: '15px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-                    <div>
-                        <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'var(--color-text)' }}>
-                            {questions.coding[currentCodingQ]?.title || `Coding Question ${currentCodingQ + 1}`}
-                        </h2>
-                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: 'bold' }}>
-                                Executions: {executionsUsed} / 5
-                            </span>
-                            {userId && (
-                                <span style={{ fontSize: '0.8em', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: '4px', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
-                                    Executor ID: <code style={{ userSelect: 'all' }}>{userId}</code>
+
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
+                {/* Quiz Tab */}
+                <div style={{
+                    flex: 1,
+                    display: activeTab === 'quiz' ? 'block' : 'none',
+                    overflowY: 'auto',
+                    borderRight: '1px solid var(--color-border)'
+                }}>
+                    <QuizSection questions={questions.quiz} onAnswer={handleQuizAnswer} />
+                </div>
+
+                {/* Coding Tab */}
+                <div style={{
+                    flex: 1,
+                    display: activeTab === 'coding' ? 'flex' : 'none',
+                    flexDirection: 'column',
+                    height: '100%',
+                    overflow: 'hidden'
+                }}>
+                    <div style={{ padding: '15px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                        <div>
+                            <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'var(--color-text)' }}>
+                                {questions.coding[currentCodingQ]?.title || `Coding Question ${currentCodingQ + 1}`}
+                            </h2>
+                            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: 'bold' }}>
+                                    Executions: {executionsUsed} / 5
                                 </span>
-                            )}
+                                {userId && (
+                                    <span style={{ fontSize: '0.8em', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: '4px', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                                        Executor ID: <code style={{ userSelect: 'all' }}>{userId}</code>
+                                    </span>
+                                )}
+                                <select
+                                    value={executionMode}
+                                    onChange={(e) => setExecutionMode(e.target.value)}
+                                    style={{ padding: '5px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text)' }}
+                                >
+                                    <option value="server">Server Execution</option>
+                                    <option value="local">Local Execution (My PC)</option>
+                                </select>
+                            </div>
                         </div>
+
+                        {/* Navigation Buttons */}
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={() => setCurrentCodingQ(prev => Math.max(0, prev - 1))}
+                                disabled={currentCodingQ === 0}
+                                className="btn"
+                                style={{
+                                    padding: '5px 15px',
+                                    fontSize: '0.9rem',
+                                    background: currentCodingQ === 0 ? 'var(--color-surface)' : 'var(--color-primary)',
+                                    opacity: currentCodingQ === 0 ? 0.5 : 1,
+                                    cursor: currentCodingQ === 0 ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                &larr; Prev
+                            </button>
+                            <button
+                                onClick={() => setCurrentCodingQ(prev => Math.min(questions.coding.length - 1, prev + 1))}
+                                disabled={currentCodingQ === questions.coding.length - 1}
+                                className="btn"
+                                style={{
+                                    padding: '5px 15px',
+                                    fontSize: '0.9rem',
+                                    background: currentCodingQ === questions.coding.length - 1 ? 'var(--color-surface)' : 'var(--color-primary)',
+                                    opacity: currentCodingQ === questions.coding.length - 1 ? 0.5 : 1,
+                                    cursor: currentCodingQ === questions.coding.length - 1 ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                Next &rarr;
+                            </button>
+                        </div>
+
+                        {/* Spacer to avoid overlap with fixed theme toggle */}
+                        <div style={{ width: '50px' }}></div>
                     </div>
-                    {/* Spacer to avoid overlap with fixed theme toggle */}
-                    <div style={{ width: '100px' }}></div>
-                </div>
 
-                <div style={{ padding: '15px 20px', background: 'var(--color-background)', borderBottom: '1px solid var(--color-border)', maxHeight: '150px', overflowY: 'auto', flexShrink: 0 }}>
-                    <p style={{ margin: 0, color: 'var(--color-text)', lineHeight: '1.6' }}>
-                        {questions.coding[currentCodingQ]?.description}
-                    </p>
-                </div>
+                    <div style={{ padding: '15px 20px', background: 'var(--color-background)', borderBottom: '1px solid var(--color-border)', maxHeight: '150px', overflowY: 'auto', flexShrink: 0 }}>
+                        <p style={{ margin: 0, color: 'var(--color-text)', lineHeight: '1.6' }}>
+                            {questions.coding[currentCodingQ]?.description}
+                        </p>
+                    </div>
 
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <CodingWorkspace
-                        initialCode={questions.coding[currentCodingQ]?.initial_code}
-                        onRun={handleRunCode}
-                        output={output}
-                        status={status}
-                        imageData={imageData}
-                        disabled={executionsUsed >= 5}
-                    />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <CodingWorkspace
+                            initialCode={questions.coding[currentCodingQ]?.initial_code}
+                            onRun={handleRunCode}
+                            onSubmit={handleSubmitCode}
+                            output={output}
+                            status={status}
+                            imageData={imageData}
+                            disabled={executionsUsed >= 5}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

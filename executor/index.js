@@ -9,14 +9,20 @@ const execPromise = util.promisify(exec);
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 const AGENT_KEY = process.env.AGENT_SECRET_KEY || 'secret';
 const FILTER_USER_ID = process.env.FILTER_USER_ID; // Optional: Only run jobs for this user
+const EXECUTION_MODE = process.env.EXECUTION_MODE || 'server'; // 'server' or 'local'
 const POLLING_INTERVAL = 2000; // 2 seconds
 
 const pollJobs = async () => {
     try {
-        const headers = { 'x-agent-key': AGENT_KEY };
+        const headers = {
+            'x-agent-key': AGENT_KEY,
+            'x-execution-mode': EXECUTION_MODE
+        };
         if (FILTER_USER_ID) {
             headers['x-filter-user-id'] = FILTER_USER_ID;
-            console.log(`Polling for user: ${FILTER_USER_ID}`);
+            console.log(`Polling for user: ${FILTER_USER_ID} (Mode: ${EXECUTION_MODE})`);
+        } else {
+            console.log(`Polling for jobs (Mode: ${EXECUTION_MODE})`);
         }
 
         const response = await axios.get(`${BACKEND_URL}/agent/jobs`, { headers });
@@ -42,10 +48,18 @@ const processJob = async (job) => {
     await fs.writeFile(scriptPath, job.code);
 
     // Local Scilab Command
-    // Found at C:\Program Files\scilab-2026.0.0
-    // Using WScilex-cli.exe for Windows CLI execution
     const scilabPath = 'C:\\Program Files\\scilab-2026.0.0\\bin\\WScilex-cli.exe';
-    const scilabCmd = `"${scilabPath}" -nb -f "${scriptPath}"`;
+
+    let scilabCmd;
+    if (job.input) {
+        const inputPath = path.join(tempDir, 'input.txt');
+        await fs.writeFile(inputPath, job.input);
+        // Pipe input.txt to Scilab
+        // Note: Windows cmd piping
+        scilabCmd = `type "${inputPath}" | "${scilabPath}" -nb -f "${scriptPath}"`;
+    } else {
+        scilabCmd = `"${scilabPath}" -nb -f "${scriptPath}"`;
+    }
 
     let output = '';
     let status = 'completed';

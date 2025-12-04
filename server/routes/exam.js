@@ -113,7 +113,7 @@ router.get('/submission-counts/:examId', requireAuth, async (req, res) => {
 
 // Run Code (Queue Job)
 router.post('/run-code', requireAuth, async (req, res) => {
-    const { exam_id, question_id, code, user_id } = req.body;
+    const { exam_id, question_id, code, input, execution_mode, user_id } = req.body;
 
     // Check execution limit
     const { count, error: countError } = await supabase
@@ -137,6 +137,8 @@ router.post('/run-code', requireAuth, async (req, res) => {
             exam_id,
             question_id,
             code,
+            input, // Store standard input
+            execution_mode: execution_mode || 'server', // Default to server
             status: 'pending'
         }])
         .select()
@@ -148,6 +150,31 @@ router.post('/run-code', requireAuth, async (req, res) => {
     // For this simple setup, the Agent will poll the 'submissions' table where status='pending'.
 
     res.json({ jobId: data.id, status: 'pending', remaining: 5 - (count + 1) });
+});
+
+// Save Code (Submit without Running)
+router.post('/save-code', requireAuth, async (req, res) => {
+    const { exam_id, question_id, code, input, user_id } = req.body;
+
+    // Create a submission record with 'submitted' status (ignored by executor)
+    const { data, error } = await supabase
+        .from('submissions')
+        .insert([{
+            user_id,
+            exam_id,
+            question_id,
+            code,
+            input, // Store standard input
+            status: 'submitted', // Distinct from 'pending'
+            output: 'Code submitted without execution',
+            score: 0 // Default score, to be graded manually or later
+        }])
+        .select()
+        .single();
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json({ success: true, submissionId: data.id });
 });
 
 // Get Submission Result

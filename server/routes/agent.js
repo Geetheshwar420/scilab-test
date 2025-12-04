@@ -18,22 +18,9 @@ router.get('/jobs', requireAgentAuth, async (req, res) => {
     // Fetch pending submissions
     let query = supabase
         .from('submissions')
-        .select('id, code, question_id, exam_id')
+        .select('id, code, input, question_id, exam_id')
         .eq('status', 'pending');
 
-    // Optional: Filter by specific user (for Personal Executor Mode)
-    const filterUserId = req.headers['x-filter-user-id'];
-    if (filterUserId) {
-        query = query.eq('user_id', filterUserId);
-    }
-
-    const { data, error } = await query.limit(1); // One job at a time
-
-    if (error) return res.status(500).json({ error: error.message });
-
-    if (data.length === 0) {
-        return res.json({ job: null });
-    }
 
     const job = data[0];
 

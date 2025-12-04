@@ -4,28 +4,27 @@ import { ThemeContext } from './ThemeContext.js';
 
 export const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
-        // 1. Check local storage
-        const saved = localStorage.getItem('theme');
-        if (saved) return saved;
-
-        // 2. Check system preference
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             return 'dark';
         }
-
-        // 3. Default fallback
         return 'light';
     });
 
     useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = (e) => setTheme(e.matches ? 'dark' : 'light');
+
+        // Listen for changes
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, []);
+
+    useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
     }, [theme]);
 
-    const toggleTheme = () => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-
     return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme }}>
             {children}
         </ThemeContext.Provider>
     );

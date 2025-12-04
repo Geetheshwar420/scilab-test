@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import './Header.css';
 import { useAuth } from '../hooks/useAuth';
 
-export default function Header({ toggleTheme, currentTheme }) {
+export default function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
     const { user } = useAuth(); // user object contains metadata with role
 
@@ -25,9 +25,6 @@ export default function Header({ toggleTheme, currentTheme }) {
                     <Link to="/admin" onClick={() => setMenuOpen(false)}>Admin</Link>
                 )}
             </nav>
-            <button className="theme-toggle" onClick={toggleTheme}>
-                {currentTheme === 'dark' ? '🌞 Light' : '🌙 Dark'}
-            </button>
         </header>
     );
 }
