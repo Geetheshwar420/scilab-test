@@ -16,11 +16,18 @@ const requireAgentAuth = (req, res, next) => {
 // Poll for Jobs
 router.get('/jobs', requireAgentAuth, async (req, res) => {
     // Fetch pending submissions
-    const { data, error } = await supabase
+    let query = supabase
         .from('submissions')
         .select('id, code, question_id, exam_id')
-        .eq('status', 'pending')
-        .limit(1); // One job at a time
+        .eq('status', 'pending');
+
+    // Optional: Filter by specific user (for Personal Executor Mode)
+    const filterUserId = req.headers['x-filter-user-id'];
+    if (filterUserId) {
+        query = query.eq('user_id', filterUserId);
+    }
+
+    const { data, error } = await query.limit(1); // One job at a time
 
     if (error) return res.status(500).json({ error: error.message });
 

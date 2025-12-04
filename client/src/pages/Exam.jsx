@@ -16,10 +16,12 @@ export default function Exam() {
     const [executionCounts, setExecutionCounts] = useState({});
     const [error, setError] = useState(null);
     const [isBlocked, setIsBlocked] = useState(false);
+    const [userId, setUserId] = useState(null);
 
     const fetchQuestions = useCallback(async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.id) setUserId(session.user.id);
 
             // Check if blocked first
             if (session?.user?.id) {
@@ -216,9 +218,16 @@ export default function Exam() {
                         <h2 style={{ margin: '0 0 5px 0', fontSize: '1.2rem', color: 'var(--color-text)' }}>
                             {questions.coding[currentCodingQ]?.title || `Coding Question ${currentCodingQ + 1}`}
                         </h2>
-                        <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: 'bold' }}>
-                            Executions: {executionsUsed} / 5
-                        </span>
+                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: 'bold' }}>
+                                Executions: {executionsUsed} / 5
+                            </span>
+                            {userId && (
+                                <span style={{ fontSize: '0.8em', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: '4px', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
+                                    Executor ID: <code style={{ userSelect: 'all' }}>{userId}</code>
+                                </span>
+                            )}
+                        </div>
                     </div>
                     {/* Spacer to avoid overlap with fixed theme toggle */}
                     <div style={{ width: '100px' }}></div>

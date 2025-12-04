@@ -64,3 +64,4 @@ pnpm-debug.log*
 # Database dumps and backups
 *.sql.backup
 *.db.backup
+start_*.bat

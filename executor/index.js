@@ -8,13 +8,18 @@ const execPromise = util.promisify(exec);
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 const AGENT_KEY = process.env.AGENT_SECRET_KEY || 'secret';
+const FILTER_USER_ID = process.env.FILTER_USER_ID; // Optional: Only run jobs for this user
 const POLLING_INTERVAL = 2000; // 2 seconds
 
 const pollJobs = async () => {
     try {
-        const response = await axios.get(`${BACKEND_URL}/agent/jobs`, {
-            headers: { 'x-agent-key': AGENT_KEY }
-        });
+        const headers = { 'x-agent-key': AGENT_KEY };
+        if (FILTER_USER_ID) {
+            headers['x-filter-user-id'] = FILTER_USER_ID;
+            console.log(`Polling for user: ${FILTER_USER_ID}`);
+        }
+
+        const response = await axios.get(`${BACKEND_URL}/agent/jobs`, { headers });
 
         const { job } = response.data;
 
@@ -40,7 +45,7 @@ const processJob = async (job) => {
     // Found at C:\Program Files\scilab-2026.0.0
     // Using WScilex-cli.exe for Windows CLI execution
     const scilabPath = 'C:\\Program Files\\scilab-2026.0.0\\bin\\WScilex-cli.exe';
-    const scilabCmd = `"${scilabPath}" -nwni -nb -f "${scriptPath}"`;
+    const scilabCmd = `"${scilabPath}" -nb -f "${scriptPath}"`;
 
     let output = '';
     let status = 'completed';

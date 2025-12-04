@@ -228,49 +228,55 @@ export default function Admin() {
     };
 
     const downloadStudentPDF = (userId) => {
-        const doc = new jsPDF();
-        const examTitle = exams.find(e => e.id === selectedExamId)?.title || 'Exam';
+        try {
+            const doc = new jsPDF();
+            const examTitle = exams.find(e => e.id === selectedExamId)?.title || 'Exam';
 
-        doc.setFontSize(18);
-        doc.text(`${examTitle} - Student Report`, 14, 22);
-        doc.setFontSize(12);
-        doc.text(`Student ID: ${userId}`, 14, 30);
+            doc.setFontSize(18);
+            doc.text(`${examTitle} - Student Report`, 14, 22);
+            doc.setFontSize(12);
+            doc.text(`Student ID: ${userId}`, 14, 30);
 
-        doc.setFontSize(14);
-        doc.text('Coding Submissions', 14, 40);
+            doc.setFontSize(14);
+            doc.text('Coding Submissions', 14, 40);
 
-        const userCoding = results.coding.filter(r => r.user_id === userId);
-        const codingData = userCoding.map(sub => [
-            sub.question_id,
-            sub.status,
-            sub.score,
-            sub.code.substring(0, 50) + '...'
-        ]);
+            const userCoding = results.coding.filter(r => r.user_id === userId);
+            const codingData = userCoding.map(sub => [
+                sub.question_id,
+                sub.status,
+                sub.score,
+                sub.code ? sub.code.substring(0, 50) + '...' : ''
+            ]);
 
-        doc.autoTable({
-            startY: 44,
-            head: [['Question ID', 'Status', 'Score', 'Code Snippet']],
-            body: codingData,
-        });
+            doc.autoTable({
+                startY: 44,
+                head: [['Question ID', 'Status', 'Score', 'Code Snippet']],
+                body: codingData,
+            });
 
-        const finalY = doc.lastAutoTable.finalY + 10;
-        doc.text('Quiz Submissions', 14, finalY);
+            // Check if lastAutoTable exists, otherwise default to a safe Y position
+            const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 10 : 100;
+            doc.text('Quiz Submissions', 14, finalY);
 
-        const userQuiz = results.quiz.filter(r => r.user_id === userId);
-        const quizData = userQuiz.map(sub => [
-            sub.question_id,
-            sub.is_correct ? 'Correct' : 'Incorrect',
-            sub.score,
-            sub.answer
-        ]);
+            const userQuiz = results.quiz.filter(r => r.user_id === userId);
+            const quizData = userQuiz.map(sub => [
+                sub.question_id,
+                sub.is_correct ? 'Correct' : 'Incorrect',
+                sub.score,
+                sub.answer
+            ]);
 
-        doc.autoTable({
-            startY: finalY + 4,
-            head: [['Question ID', 'Result', 'Score', 'Answer']],
-            body: quizData,
-        });
+            doc.autoTable({
+                startY: finalY + 4,
+                head: [['Question ID', 'Result', 'Score', 'Answer']],
+                body: quizData,
+            });
 
-        doc.save(`exam_report_${userId}.pdf`);
+            doc.save(`exam_report_${userId}.pdf`);
+        } catch (err) {
+            console.error("PDF Generation Error:", err);
+            alert("Failed to generate PDF. Please check console for details.");
+        }
     };
 
     const getStudentResults = () => {
@@ -426,9 +432,15 @@ export default function Admin() {
                                         <textarea className="input-field" placeholder="Description" value={codingQ.description} onChange={e => setCodingQ({ ...codingQ, description: e.target.value })} />
                                         <textarea className="input-field" placeholder="Initial Code" value={codingQ.initial_code} onChange={e => setCodingQ({ ...codingQ, initial_code: e.target.value })} style={{ fontFamily: 'monospace' }} />
                                         <textarea className="input-field" placeholder="Solution Code" value={codingQ.solution_code} onChange={e => setCodingQ({ ...codingQ, solution_code: e.target.value })} style={{ fontFamily: 'monospace' }} />
-                                        <textarea className="input-field" placeholder="Test Cases (JSON)" value={codingQ.test_cases} onChange={e => setCodingQ({ ...codingQ, test_cases: e.target.value })} style={{ fontFamily: 'monospace' }} />
-                                        <input type="number" className="input-field" placeholder="Points" value={codingQ.points} onChange={e => setCodingQ({ ...codingQ, points: parseInt(e.target.value) })} />
-                                        <button onClick={editingQuestion ? updateCodingQuestion : addCodingQuestion} className="btn btn-primary">
+                                        <textarea className="input-field" placeholder='Test Cases (JSON) e.g. [{"input": "1", "output": "1"}]' value={codingQ.test_cases} onChange={e => setCodingQ({ ...codingQ, test_cases: e.target.value })} style={{ fontFamily: 'monospace' }} />
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '-10px', marginBottom: '10px' }}>
+                                            Format: <code>[&#123;"input": "arg1", "output": "expected"&#125;]</code>
+                                        </div>
+                                        <div style={{ marginTop: '10px' }}>
+                                            <label style={{ display: 'block', marginBottom: '5px', color: '#94a3b8', fontSize: '0.9rem' }}>Points / Marks</label>
+                                            <input type="number" className="input-field" placeholder="e.g. 10" value={codingQ.points} onChange={e => setCodingQ({ ...codingQ, points: parseInt(e.target.value) })} />
+                                        </div>
+                                        <button onClick={editingQuestion ? updateCodingQuestion : addCodingQuestion} className="btn btn-primary" style={{ marginTop: '10px' }}>
                                             {editingQuestion ? 'Update Coding Question' : 'Add Coding Question'}
                                         </button>
                                     </div>
@@ -440,10 +452,20 @@ export default function Admin() {
                                             <option value="short">Short Answer</option>
                                         </select>
                                         <textarea className="input-field" placeholder="Question" value={quizQ.question} onChange={e => setQuizQ({ ...quizQ, question: e.target.value })} />
-                                        {quizQ.type === 'mcq' && <textarea className="input-field" placeholder="Options (JSON Array)" value={quizQ.options} onChange={e => setQuizQ({ ...quizQ, options: e.target.value })} />}
+                                        {quizQ.type === 'mcq' && (
+                                            <>
+                                                <textarea className="input-field" placeholder='Options (JSON Array) e.g. ["Option A", "Option B"]' value={quizQ.options} onChange={e => setQuizQ({ ...quizQ, options: e.target.value })} />
+                                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '-10px', marginBottom: '10px' }}>
+                                                    Format: <code>["Option 1", "Option 2", "Option 3", "Option 4"]</code>
+                                                </div>
+                                            </>
+                                        )}
                                         <input className="input-field" placeholder="Correct Answer" value={quizQ.correct_answer} onChange={e => setQuizQ({ ...quizQ, correct_answer: e.target.value })} />
-                                        <input type="number" className="input-field" placeholder="Points" value={quizQ.points} onChange={e => setQuizQ({ ...quizQ, points: parseInt(e.target.value) })} />
-                                        <button onClick={editingQuestion ? updateQuizQuestion : addQuizQuestion} className="btn btn-primary">
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '5px', color: '#94a3b8', fontSize: '0.9rem' }}>Points / Marks</label>
+                                            <input type="number" className="input-field" placeholder="e.g. 5" value={quizQ.points} onChange={e => setQuizQ({ ...quizQ, points: parseInt(e.target.value) })} />
+                                        </div>
+                                        <button onClick={editingQuestion ? updateQuizQuestion : addQuizQuestion} className="btn btn-primary" style={{ marginTop: '10px' }}>
                                             {editingQuestion ? 'Update Quiz Question' : 'Add Quiz Question'}
                                         </button>
                                     </div>
