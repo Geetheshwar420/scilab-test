@@ -41,7 +41,10 @@ export default function Admin() {
     // Fetch exams on mount - this is the correct pattern for data fetching
 
     useEffect(() => {
-        fetchExams();
+        const loadExams = async () => {
+            await fetchExams();
+        };
+        loadExams();
     }, [fetchExams]);
 
     const fetchBlockedUsers = useCallback(async () => {
@@ -72,11 +75,14 @@ export default function Admin() {
     }, [selectedExamId]);
 
     // Fetch data when tab or exam changes - this is the correct pattern for data fetching
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     useEffect(() => {
-        if (activeTab === 'security') fetchBlockedUsers();
-        if (activeTab === 'results') fetchResults();
-        if (activeTab === 'exams' && selectedExamId) fetchExistingQuestions();
+        const loadData = async () => {
+            if (activeTab === 'security') await fetchBlockedUsers();
+            if (activeTab === 'results') await fetchResults();
+            if (activeTab === 'exams' && selectedExamId) await fetchExistingQuestions();
+        };
+        loadData();
     }, [activeTab, selectedExamId, fetchBlockedUsers, fetchResults, fetchExistingQuestions]);
 
     const createExam = async () => {

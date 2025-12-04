@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthProvider';
 import { useAuth } from './hooks/useAuth';
 import { useContext, lazy, Suspense } from 'react';
-import { ThemeContext } from './context/ThemeContext';
+import { ThemeContext } from './context/ThemeContext.js';
 
 // Lazy load pages
 const Login = lazy(() => import('./pages/Login'));
