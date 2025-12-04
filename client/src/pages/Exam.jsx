@@ -180,14 +180,20 @@ export default function Exam() {
         }));
 
         // Poll for result
+        let attempts = 0;
         const interval = setInterval(async () => {
+            attempts++;
             const res = await fetch(`${API_URL}/exam/result/${jobId}`);
             const data = await res.json();
+
             if (data.status !== 'pending' && data.status !== 'running') {
                 clearInterval(interval);
                 setStatus(data.status);
                 setOutput(data.output);
                 setImageData(data.image_data);
+            } else if (attempts > 10 && executionMode === 'local' && data.status === 'pending') {
+                // If pending for > 40 seconds in local mode
+                setOutput("⚠️ Job is still pending. \n\nIs your Local Executor running? \n\n1. Check your terminal window.\n2. If not running, download the script and run it.\n3. Or switch to 'Server Execution'.");
             }
         }, 4000);
     };
@@ -230,6 +236,30 @@ export default function Exam() {
         } else {
             alert("Failed to submit code.");
         }
+    };
+
+    const handleDownloadExecutor = () => {
+        if (!userId) return;
+
+        const batContent = `@echo off
+echo Starting Exam Executor for User: ${userId}
+set USER_ID=${userId}
+set EXECUTION_MODE=local
+echo.
+echo Please ensure you are in the platform directory.
+echo Starting executor...
+node executor/index.js
+pause`;
+
+        const blob = new Blob([batContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'start_my_exam.bat';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     };
 
     if (isBlocked) {
@@ -327,7 +357,16 @@ export default function Exam() {
                                 )}
                                 <select
                                     value={executionMode}
-                                    onChange={(e) => setExecutionMode(e.target.value)}
+                                    onChange={(e) => {
+                                        const mode = e.target.value;
+                                        setExecutionMode(mode);
+                                        if (mode === 'local') {
+                                            // Auto-download executor script
+                                            if (window.confirm("You selected Local Execution. Do you need to download your Executor Script?")) {
+                                                handleDownloadExecutor();
+                                            }
+                                        }
+                                    }}
                                     style={{ padding: '5px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text)' }}
                                 >
                                     <option value="server">Server Execution</option>
