@@ -245,39 +245,6 @@ export default function Admin() {
 
             doc.setFontSize(14);
             doc.text('Coding Submissions', 14, 40);
-
-            const userCoding = results.coding.filter(r => r.user_id === userId);
-            const codingData = userCoding.map(sub => [
-                sub.question_id,
-                sub.status,
-                sub.score,
-                sub.code ? sub.code.substring(0, 50) + '...' : ''
-            ]);
-
-            doc.autoTable({
-                startY: 44,
-                head: [['Question ID', 'Status', 'Score', 'Code Snippet']],
-                body: codingData,
-            });
-
-            // Check if lastAutoTable exists, otherwise default to a safe Y position
-            const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 10 : 100;
-            doc.text('Quiz Submissions', 14, finalY);
-
-            const userQuiz = results.quiz.filter(r => r.user_id === userId);
-            const quizData = userQuiz.map(sub => [
-                sub.question_id,
-                sub.is_correct ? 'Correct' : 'Incorrect',
-                sub.score,
-                sub.answer
-            ]);
-
-            doc.autoTable({
-                startY: finalY + 4,
-                head: [['Question ID', 'Result', 'Score', 'Answer']],
-                body: quizData,
-            });
-
             doc.save(`exam_report_${userId}.pdf`);
         } catch (err) {
             console.error("PDF Generation Error:", err);
