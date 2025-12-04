@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import CodingWorkspace from '../components/CodingWorkspace';
 import QuizSection from '../components/QuizSection';
 import { supabase } from '../lib/supabase';
@@ -8,7 +8,36 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function Exam() {
     const { examId } = useParams();
+    const navigate = useNavigate();
     const [questions, setQuestions] = useState({ coding: [], quiz: [] });
+    // ... (rest of state)
+
+    // ... (fetchQuestions)
+
+    // ... (useEffect for visibility)
+
+    // ... (handleRunCode, handleQuizAnswer, handleSubmitCode, handleDownloadExecutor)
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
+
+    if (isBlocked) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fee2e2', color: '#991b1b' }}>
+                <h1>You have been blocked!</h1>
+                <p>Tab switching or leaving the exam screen is not allowed.</p>
+                <p>Please contact the administrator to unblock you.</p>
+                <button
+                    onClick={handleLogout}
+                    style={{ marginTop: '20px', padding: '10px 20px', fontSize: '1.2em', cursor: 'pointer', background: '#ef4444', color: 'white', border: 'none', borderRadius: '5px' }}
+                >
+                    Logout & Return to Login
+                </button>
+            </div>
+        );
+    }
     const [currentCodingQ, setCurrentCodingQ] = useState(0);
     const [output, setOutput] = useState('');
     const [imageData, setImageData] = useState(null);
@@ -262,12 +291,23 @@ pause`;
         window.URL.revokeObjectURL(url);
     };
 
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
+    };
+
     if (isBlocked) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fee2e2', color: '#991b1b' }}>
                 <h1>You have been blocked!</h1>
                 <p>Tab switching or leaving the exam screen is not allowed.</p>
                 <p>Please contact the administrator to unblock you.</p>
+                <button
+                    onClick={handleLogout}
+                    style={{ marginTop: '20px', padding: '10px 20px', fontSize: '1.2em', cursor: 'pointer', background: '#ef4444', color: 'white', border: 'none', borderRadius: '5px' }}
+                >
+                    Logout & Return to Login
+                </button>
             </div>
         );
     }
