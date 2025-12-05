@@ -8,17 +8,25 @@ export default function QuizSection({ questions, onAnswer }) {
 
                     {q.type === 'mcq' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            {q.options?.map((opt) => (
-                                <label key={opt}>
-                                    <input
-                                        type="radio"
-                                        name={q.id}
-                                        value={opt}
-                                        onChange={(e) => onAnswer(q.id, e.target.value)}
-                                    />
-                                    {opt}
-                                </label>
-                            ))}
+                            {(() => {
+                                let opts = q.options;
+                                if (typeof opts === 'string') {
+                                    try { opts = JSON.parse(opts); } catch { opts = []; }
+                                }
+                                if (!Array.isArray(opts)) opts = [];
+
+                                return opts.map((opt) => (
+                                    <label key={opt}>
+                                        <input
+                                            type="radio"
+                                            name={q.id}
+                                            value={opt}
+                                            onChange={(e) => onAnswer(q.id, e.target.value)}
+                                        />
+                                        {opt}
+                                    </label>
+                                ));
+                            })()}
                         </div>
                     )}
 
