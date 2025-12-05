@@ -57,8 +57,8 @@ const processJob = async (job) => {
     await fs.ensureDir(tempDir);
 
     const scriptPath = path.join(tempDir, 'script.sci');
-    // Add 'exit' command at the end to ensure Scilab terminates properly
-    const scilabCode = job.code + '\nexit;';
+    // Add marker to separate banner from output, and 'exit' to terminate
+    const scilabCode = "mprintf('__START_OUTPUT__\\n');\n" + job.code + '\nexit;';
     await fs.writeFile(scriptPath, scilabCode);
 
     // Find Scilab Path dynamically
@@ -116,7 +116,16 @@ const processJob = async (job) => {
 
     try {
         const { stdout, stderr } = await execPromise(scilabCmd, { timeout: 60000 }); // Increased timeout to 60s
-        output = stdout + stderr;
+        let rawOutput = stdout + stderr;
+
+        // Clean Output: Remove Scilab banner using marker
+        const marker = '__START_OUTPUT__';
+        if (rawOutput.includes(marker)) {
+            output = rawOutput.split(marker)[1].trim();
+        } else {
+            // Fallback: Regex to remove common banner lines if marker not found (e.g. syntax error)
+            output = rawOutput.replace(/^Scilab.*$/gm, '').trim();
+        }
 
         // Check for generated images (e.g., *.png)
         const files = await fs.readdir(tempDir);
