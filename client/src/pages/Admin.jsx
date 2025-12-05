@@ -238,14 +238,54 @@ export default function Admin() {
             const doc = new jsPDF();
             const examTitle = exams.find(e => e.id === selectedExamId)?.title || 'Exam';
 
+            // Find student email from results or blocked users
+            const studentResult = getStudentResults().find(s => s.id === userId);
+            const studentEmail = studentResult?.email || userId;
+
             doc.setFontSize(18);
             doc.text(`${examTitle} - Student Report`, 14, 22);
             doc.setFontSize(12);
-            doc.text(`Student ID: ${userId}`, 14, 30);
+            doc.text(`Student: ${studentEmail}`, 14, 30);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 38);
 
+            // Coding Submissions
             doc.setFontSize(14);
-            doc.text('Coding Submissions', 14, 40);
-            doc.save(`exam_report_${userId}.pdf`);
+            doc.text('Coding Submissions', 14, 50);
+
+            const codingData = results.coding.filter(r => r.user_id === userId).map((r, i) => [
+                `Q${i + 1}`,
+                r.code?.substring(0, 100) + (r.code?.length > 100 ? '...' : ''),
+                r.score || 0
+            ]);
+
+            doc.autoTable({
+                startY: 55,
+                head: [['Question', 'Code Snippet', 'Score']],
+                body: codingData,
+            });
+
+            // Quiz Submissions
+            const finalY = doc.lastAutoTable.finalY || 60;
+            doc.text('Quiz Submissions', 14, finalY + 15);
+
+            const quizData = results.quiz.filter(r => r.user_id === userId).map((r, i) => [
+                `Q${i + 1}`,
+                r.answer,
+                r.is_correct ? 'Correct' : 'Incorrect',
+                r.score || 0
+            ]);
+
+            doc.autoTable({
+                startY: finalY + 20,
+                head: [['Question', 'Answer', 'Result', 'Score']],
+                body: quizData,
+            });
+
+            // Total Score
+            const totalScore = (studentResult?.codingScore || 0) + (studentResult?.quizScore || 0);
+            doc.text(`Total Score: ${totalScore}`, 14, doc.lastAutoTable.finalY + 15);
+
+            doc.save(`exam_report_${studentEmail}.pdf`);
         } catch (err) {
             console.error("PDF Generation Error:", err);
             alert("Failed to generate PDF. Please check console for details.");
@@ -623,7 +663,8 @@ export default function Admin() {
                                     ) : (
                                         blockedUsers.map(u => (
                                             <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{u.user_id}</td>
+                                                -                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{u.user_id}</td>
+                                                +                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{u.email || u.user_id}</td>
                                                 <td style={{ padding: '15px' }}>
                                                     <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>Blocked</span>
                                                 </td>
