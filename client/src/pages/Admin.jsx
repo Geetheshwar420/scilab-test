@@ -240,7 +240,7 @@ export default function Admin() {
     };
 
     const deleteCodingQuestion = async (id) => {
-        if (!confirm('Are you sure you want to delete this question?')) return;
+        if (!window.confirm('Are you sure you want to delete this question?')) return;
         const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/delete-coding-question/${id}`, {
             method: 'DELETE',
@@ -251,7 +251,7 @@ export default function Admin() {
     };
 
     const deleteQuizQuestion = async (id) => {
-        if (!confirm('Are you sure you want to delete this question?')) return;
+        if (!window.confirm('Are you sure you want to delete this question?')) return;
         const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/delete-quiz-question/${id}`, {
             method: 'DELETE',
@@ -360,7 +360,7 @@ export default function Admin() {
             userCodingSubs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
             // Map to array
-            const codingData = userCodingSubs.map((r, i) => {
+            const codingData = userCodingSubs.map((r) => {
                 // Try to find question title
                 const question = existingQuestions.coding.find(q => q.id === r.question_id);
                 const title = question ? question.title : `Question ID: ${r.question_id}`;
