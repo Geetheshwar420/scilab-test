@@ -170,9 +170,26 @@ router.get('/blocked-users/:examId', isAdmin, async (req, res) => {
     const { data, error } = await supabase
         .from('blocked_students')
         .select('*')
+        .eq('exam_id', examId);
 
     if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+
+    // Fetch all users to map IDs to Emails
+    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+
+    const userMap = {};
+    if (users) {
+        users.forEach(u => {
+            userMap[u.id] = u.email;
+        });
+    }
+
+    const blockedWithEmails = data.map(u => ({
+        ...u,
+        email: userMap[u.user_id] || 'Unknown'
+    }));
+
+    res.json(blockedWithEmails);
 });
 
 // Unblock User
