@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -258,7 +258,7 @@ export default function Admin() {
                 r.score || 0
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: 55,
                 head: [['Question', 'Code Snippet', 'Score']],
                 body: codingData,
@@ -275,7 +275,7 @@ export default function Admin() {
                 r.score || 0
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: finalY + 20,
                 head: [['Question', 'Answer', 'Result', 'Score']],
                 body: quizData,

@@ -73,7 +73,12 @@ const processJob = async (job) => {
                 const dirs = await fs.readdir(root);
                 const scilabDir = dirs.find(d => d.toLowerCase().startsWith('scilab'));
                 if (scilabDir) {
-                    const candidate = path.join(root, scilabDir, 'bin', 'WScilex-cli.exe');
+                    // Try Scilex.exe first (dedicated for -nwni)
+                    let candidate = path.join(root, scilabDir, 'bin', 'Scilex.exe');
+                    if (await fs.pathExists(candidate)) return candidate;
+
+                    // Fallback to WScilex-cli.exe
+                    candidate = path.join(root, scilabDir, 'bin', 'WScilex-cli.exe');
                     if (await fs.pathExists(candidate)) return candidate;
                 }
             } catch (e) {
