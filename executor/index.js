@@ -9,6 +9,7 @@ const execPromise = util.promisify(exec);
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 const AGENT_KEY = process.env.AGENT_SECRET_KEY || 'secret';
 const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '10', 10);
+const POLLING_INTERVAL = 2000;
 let activeJobs = 0;
 
 const pollJobs = async () => {
