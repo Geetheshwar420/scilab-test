@@ -100,11 +100,11 @@ const processJob = async (job) => {
     if (job.input) {
         const inputPath = path.join(tempDir, 'input.txt');
         await fs.writeFile(inputPath, job.input);
-        // Pipe input.txt to Scilab
-        // Use -nw (No Window) instead of -nwni
-        scilabCmd = `type "${inputPath}" | "${scilabPath}" -nw -nb -f "${scriptPath}"`;
+        // Pipe input.txt to Scilab - use only -f flag (execute file and exit)
+        scilabCmd = `type "${inputPath}" | "${scilabPath}" -f "${scriptPath}"`;
     } else {
-        scilabCmd = `"${scilabPath}" -nw -nb -f "${scriptPath}"`;
+        // Use -f flag only (execute file and exit)
+        scilabCmd = `"${scilabPath}" -f "${scriptPath}"`;
     }
 
     let output = '';
