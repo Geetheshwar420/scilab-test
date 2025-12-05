@@ -248,28 +248,48 @@ export default function Exam() {
     const [activeTab, setActiveTab] = useState('coding'); // 'coding' or 'quiz'
 
     const handleSubmitCode = async (code, input) => {
+        if (!questions.coding || !questions.coding.length) return;
+
         const currentQId = questions.coding[currentCodingQ]?.id;
         const { data: { session } } = await supabase.auth.getSession();
 
         // Update local code state
         setCodeState(prev => ({ ...prev, [currentCodingQ]: code }));
 
-        await fetch(`${API_URL}/exam/save-code`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token}`
-            },
-            body: JSON.stringify({
-                exam_id: examId,
-                question_id: currentQId,
-                code,
-                input, // Save input as well
-                user_id: session?.user?.id
-            })
-        });
+        try {
+            const res = await fetch(`${API_URL}/exam/save-code`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({
+                    exam_id: examId,
+                    question_id: currentQId,
+                    code,
+                    input, // Save input as well
+                    user_id: session?.user?.id
+                })
+            });
 
-        // Removed confirmation alert as per request
+            if (res.ok) {
+                // Auto-navigate to next question or finish
+                if (currentCodingQ < questions.coding.length - 1) {
+                    if (window.confirm("Code saved successfully! Move to next question?")) {
+                        setCurrentCodingQ(prev => prev + 1);
+                    }
+                } else {
+                    if (window.confirm("Code saved! This was the last question. Do you want to finish the exam?")) {
+                        handleFinalSubmit();
+                    }
+                }
+            } else {
+                alert("Failed to save code. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error saving code:", error);
+            alert("An error occurred while saving code.");
+        }
     };
 
     const [examResult, setExamResult] = useState(null);
