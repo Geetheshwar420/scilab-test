@@ -113,7 +113,7 @@ const processJob = async (job) => {
     let imageData = null;
 
     try {
-        const { stdout, stderr } = await execPromise(scilabCmd, { timeout: 15000 }); // Increased timeout to 15s
+        const { stdout, stderr } = await execPromise(scilabCmd, { timeout: 60000 }); // Increased timeout to 60s
         output = stdout + stderr;
 
         // Check for generated images (e.g., *.png)
