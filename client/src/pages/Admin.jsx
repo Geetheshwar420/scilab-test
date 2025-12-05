@@ -122,26 +122,48 @@ export default function Admin() {
     const getStudentResults = () => {
         const students = {};
 
+        // Process Coding Results
         results.coding.forEach(r => {
             if (!students[r.user_id]) students[r.user_id] = {
                 id: r.user_id,
                 email: r.email,
+                codingScores: {}, // Track max score per question
+                quizScores: {},   // Track max score per question
                 codingScore: 0,
                 quizScore: 0,
                 lastActive: r.created_at
             };
-            students[r.user_id].codingScore += (r.score || 0);
+
+            // Track max score for this question
+            const currentMax = students[r.user_id].codingScores[r.question_id] || 0;
+            if ((r.score || 0) > currentMax) {
+                students[r.user_id].codingScores[r.question_id] = r.score || 0;
+            }
         });
 
+        // Process Quiz Results
         results.quiz.forEach(r => {
             if (!students[r.user_id]) students[r.user_id] = {
                 id: r.user_id,
                 email: r.email,
+                codingScores: {},
+                quizScores: {},
                 codingScore: 0,
                 quizScore: 0,
                 lastActive: r.created_at
             };
-            students[r.user_id].quizScore += (r.score || 0);
+
+            // Track max score for this question
+            const currentMax = students[r.user_id].quizScores[r.question_id] || 0;
+            if ((r.score || 0) > currentMax) {
+                students[r.user_id].quizScores[r.question_id] = r.score || 0;
+            }
+        });
+
+        // Calculate Totals
+        Object.values(students).forEach(student => {
+            student.codingScore = Object.values(student.codingScores).reduce((a, b) => a + b, 0);
+            student.quizScore = Object.values(student.quizScores).reduce((a, b) => a + b, 0);
         });
 
         return Object.values(students);
