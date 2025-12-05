@@ -252,7 +252,15 @@ export default function Exam() {
         });
     };
 
-    const [activeTab, setActiveTab] = useState('coding'); // 'coding' or 'quiz'
+    const [modalConfig, setModalConfig] = useState({ show: false, message: '', onConfirm: null });
+
+    const showConfirm = (message, onConfirm) => {
+        setModalConfig({ show: true, message, onConfirm });
+    };
+
+    const closeConfirm = () => {
+        setModalConfig({ show: false, message: '', onConfirm: null });
+    };
 
     const handleSubmitCode = async (code, input) => {
         if (!questions.coding || !questions.coding.length) return;
@@ -267,9 +275,9 @@ export default function Exam() {
         setOutput(prev => "Submitting code...\nExecuting test run...\n\n" + (prev || ''));
 
         // 1. Try to execute code first
-        await executeCode(code, input);
+        const executionResult = await executeCode(code, input);
 
-        // 2. Save as submitted (regardless of execution result)
+        // 2. Save as submitted (passing the execution result)
         try {
             const res = await fetch(`${API_URL}/exam/save-code`, {
                 method: 'POST',
@@ -281,8 +289,10 @@ export default function Exam() {
                     exam_id: examId,
                     question_id: currentQId,
                     code,
-                    input, // Save input as well
-                    user_id: session?.user?.id
+                    input,
+                    user_id: session?.user?.id,
+                    score: executionResult?.score, // Pass the score from execution
+                    output: executionResult?.output // Pass the output from execution
                 })
             });
 
@@ -292,20 +302,16 @@ export default function Exam() {
 
                 // Auto-navigate to next question or finish
                 if (currentCodingQ < questions.coding.length - 1) {
-                    if (window.confirm("Code executed and submitted successfully! Move to next question?")) {
+                    showConfirm("Code executed and submitted successfully! Move to next question?", () => {
                         setCurrentCodingQ(prev => prev + 1);
                         setOutput(''); // Clear output for next question
-                    } else {
-                        // User cancelled navigation, but code is saved
-                        alert("Code submitted successfully. You can continue working on this question.");
-                    }
+                        closeConfirm();
+                    });
                 } else {
-                    if (window.confirm("Code executed and submitted successfully! This was the last question. Do you want to finish the exam?")) {
+                    showConfirm("Code executed and submitted successfully! This was the last question. Do you want to finish the exam?", () => {
                         handleFinalSubmit();
-                    } else {
-                        // User cancelled finish, but code is saved
-                        alert("Code submitted successfully. You can review your answers before finishing.");
-                    }
+                        closeConfirm();
+                    });
                 }
             } else {
                 setOutput(prev => (prev || '') + "\n\n❌ Failed to submit code.");
@@ -321,8 +327,22 @@ export default function Exam() {
     const [examResult, setExamResult] = useState(null);
 
     const handleFinalSubmit = async () => {
-        if (!window.confirm("Are you sure you want to finish the exam? You cannot go back.")) return;
+        // If called directly (not from modal callback), show confirmation
+        if (!modalConfig.show) {
+            showConfirm("Are you sure you want to finish the exam? You cannot go back.", () => {
+                handleFinalSubmit(); // Call again, but this time logic will proceed? No, logic needs to be separate.
+                // Actually, let's just implement the logic here directly or separate it.
+                // To avoid recursion issues with state, let's just define the logic function.
+                submitExamLogic();
+                closeConfirm();
+            });
+            return;
+        }
+        // If called from modal (which we don't really do directly, we pass a callback),
+        // but let's just separate the logic.
+    };
 
+    const submitExamLogic = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         try {
             const res = await fetch(`${API_URL}/exam/finish-exam`, {
@@ -402,12 +422,48 @@ export default function Exam() {
     const executionsUsed = executionCounts[currentQId] || 0;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', position: 'relative' }}>
+            {/* Custom Modal */}
+            {modalConfig.show && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'var(--color-surface)', padding: '30px', borderRadius: '10px',
+                        maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                    }}>
+                        <h3 style={{ marginTop: 0, marginBottom: '20px', color: 'var(--color-text)' }}>Confirmation</h3>
+                        <p style={{ marginBottom: '30px', color: 'var(--color-text-secondary)' }}>{modalConfig.message}</p>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                            <button
+                                onClick={closeConfirm}
+                                style={{
+                                    padding: '10px 20px', background: 'transparent', border: '1px solid var(--color-border)',
+                                    color: 'var(--color-text)', borderRadius: '5px', cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={modalConfig.onConfirm}
+                                style={{
+                                    padding: '10px 20px', background: 'var(--color-primary)', border: 'none',
+                                    color: 'white', borderRadius: '5px', cursor: 'pointer'
+                                }}
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header with Timer (optional) and Submit */}
             <div style={{ padding: '10px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 style={{ margin: 0, color: 'var(--color-primary)' }}>Physics Exam Platform</h2>
                 <button
-                    onClick={handleFinalSubmit}
+                    onClick={() => showConfirm("Are you sure you want to finish the exam? You cannot go back.", () => { submitExamLogic(); closeConfirm(); })}
                     style={{
                         padding: '8px 20px',
                         background: '#10b981', // Green

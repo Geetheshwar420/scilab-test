@@ -175,9 +175,9 @@ router.post('/run-code', requireAuth, async (req, res) => {
 
 // Save Code (Submit without Running)
 router.post('/save-code', requireAuth, async (req, res) => {
-    const { exam_id, question_id, code, input, user_id } = req.body;
+    const { exam_id, question_id, code, input, user_id, score, output } = req.body;
 
-    // Create a submission record with 'submitted' status (ignored by executor)
+    // Create a submission record with 'submitted' status
     const { data, error } = await supabase
         .from('submissions')
         .insert([{
@@ -187,8 +187,8 @@ router.post('/save-code', requireAuth, async (req, res) => {
             code,
             input, // Store standard input
             status: 'submitted', // Distinct from 'pending'
-            output: 'Code submitted without execution',
-            score: 0 // Default score, to be graded manually or later
+            output: output || 'Code submitted without execution',
+            score: score !== undefined ? score : 0 // Use provided score or default to 0
         }])
         .select()
         .single();
