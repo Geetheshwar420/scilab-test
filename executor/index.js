@@ -61,8 +61,41 @@ const processJob = async (job) => {
     const scriptPath = path.join(tempDir, 'script.sci');
     await fs.writeFile(scriptPath, job.code);
 
-    // Local Scilab Command
-    const scilabPath = 'C:\\Program Files\\scilab-2026.0.0\\bin\\WScilex-cli.exe';
+    // Find Scilab Path dynamically
+    const findScilab = async () => {
+        const programFiles = [
+            process.env['ProgramFiles'],
+            process.env['ProgramFiles(x86)']
+        ].filter(Boolean);
+
+        for (const root of programFiles) {
+            try {
+                const dirs = await fs.readdir(root);
+                const scilabDir = dirs.find(d => d.toLowerCase().startsWith('scilab'));
+                if (scilabDir) {
+                    const candidate = path.join(root, scilabDir, 'bin', 'WScilex-cli.exe');
+                    if (await fs.pathExists(candidate)) return candidate;
+                }
+            } catch (e) {
+                // Ignore access errors
+            }
+        }
+        return null;
+    };
+
+    const scilabPath = await findScilab();
+
+    if (!scilabPath) {
+        console.error('Scilab executable not found!');
+        // Fail the job immediately
+        await axios.post(`${BACKEND_URL}/agent/job-result`, {
+            jobId: job.id,
+            output: 'Error: Scilab executable not found on the server. Please install Scilab.',
+            status: 'failed',
+            score: 0
+        }, { headers: { 'x-agent-key': AGENT_KEY } });
+        return;
+    }
 
     let scilabCmd;
     if (job.input) {

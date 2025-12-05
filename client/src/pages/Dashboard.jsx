@@ -33,8 +33,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <div>
                     <h1 style={{ margin: 0, color: 'var(--color-text)' }}>Dashboard</h1>
-                    <p style={{ color: 'var(--color-text-secondary)', marginTop: '5px' }}>
-                        Welcome, <code style={{ userSelect: 'all', fontWeight: 'bold' }}>{user?.id || 'Loading...'}</code>
+                        Welcome, <code style={{ userSelect: 'all', fontWeight: 'bold' }}>{user?.email || 'Loading...'}</code>
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -59,6 +58,6 @@ export default function Dashboard() {
                 ))}
                 {exams.length === 0 && <p>No active exams found.</p>}
             </div>
-        </div>
+        </div >
     );
 }
