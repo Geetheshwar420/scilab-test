@@ -263,6 +263,9 @@ export default function Exam() {
         // Update local code state
         setCodeState(prev => ({ ...prev, [currentCodingQ]: code }));
 
+        // Show immediate feedback in terminal
+        setOutput(prev => "Submitting code...\nExecuting test run...\n\n" + (prev || ''));
+
         // 1. Try to execute code first
         await executeCode(code, input);
 
@@ -284,27 +287,33 @@ export default function Exam() {
             });
 
             if (res.ok) {
+                // Append success message to terminal
+                setOutput(prev => (prev || '') + "\n\n✅ Code submitted successfully!");
+
                 // Auto-navigate to next question or finish
                 if (currentCodingQ < questions.coding.length - 1) {
-                    if (window.confirm("Code executed and saved! Move to next question?")) {
+                    if (window.confirm("Code executed and submitted successfully! Move to next question?")) {
                         setCurrentCodingQ(prev => prev + 1);
+                        setOutput(''); // Clear output for next question
                     } else {
                         // User cancelled navigation, but code is saved
-                        alert("Code saved successfully. You can continue working on this question.");
+                        alert("Code submitted successfully. You can continue working on this question.");
                     }
                 } else {
-                    if (window.confirm("Code executed and saved! This was the last question. Do you want to finish the exam?")) {
+                    if (window.confirm("Code executed and submitted successfully! This was the last question. Do you want to finish the exam?")) {
                         handleFinalSubmit();
                     } else {
                         // User cancelled finish, but code is saved
-                        alert("Code saved successfully. You can review your answers before finishing.");
+                        alert("Code submitted successfully. You can review your answers before finishing.");
                     }
                 }
             } else {
+                setOutput(prev => (prev || '') + "\n\n❌ Failed to submit code.");
                 alert("Failed to save code. Please try again.");
             }
         } catch (error) {
             console.error("Error saving code:", error);
+            setOutput(prev => (prev || '') + "\n\n❌ Error submitting code.");
             alert("An error occurred while saving code.");
         }
     };
