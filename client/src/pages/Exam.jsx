@@ -252,7 +252,7 @@ export default function Exam() {
         });
     };
 
-    const [activeTab, setActiveTab] = useState('coding');
+    const [activeTab, setActiveTab] = useState('quiz');
     const [modalConfig, setModalConfig] = useState({ show: false, message: '', onConfirm: null });
 
     const showConfirm = (message, onConfirm) => {
@@ -480,23 +480,8 @@ export default function Exam() {
                 </button>
             </div>
 
-            {/* Mobile Tab Navigation */}
+            {/* Tab Navigation */}
             <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
-                <button
-                    onClick={() => setActiveTab('coding')}
-                    style={{
-                        flex: 1,
-                        padding: '15px',
-                        background: activeTab === 'coding' ? 'var(--color-background)' : 'transparent',
-                        border: 'none',
-                        borderBottom: activeTab === 'coding' ? '2px solid var(--color-primary)' : 'none',
-                        color: activeTab === 'coding' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        fontWeight: 'bold',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Coding Section
-                </button>
                 <button
                     onClick={() => setActiveTab('quiz')}
                     style={{
@@ -511,6 +496,21 @@ export default function Exam() {
                     }}
                 >
                     Quiz Section
+                </button>
+                <button
+                    onClick={() => setActiveTab('coding')}
+                    style={{
+                        flex: 1,
+                        padding: '15px',
+                        background: activeTab === 'coding' ? 'var(--color-background)' : 'transparent',
+                        border: 'none',
+                        borderBottom: activeTab === 'coding' ? '2px solid var(--color-primary)' : 'none',
+                        color: activeTab === 'coding' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Coding Section
                 </button>
             </div>
 
