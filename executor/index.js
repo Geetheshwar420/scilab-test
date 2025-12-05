@@ -57,7 +57,9 @@ const processJob = async (job) => {
     await fs.ensureDir(tempDir);
 
     const scriptPath = path.join(tempDir, 'script.sci');
-    await fs.writeFile(scriptPath, job.code);
+    // Add 'exit' command at the end to ensure Scilab terminates properly
+    const scilabCode = job.code + '\nexit;';
+    await fs.writeFile(scriptPath, scilabCode);
 
     // Find Scilab Path dynamically
     const findScilab = async () => {
