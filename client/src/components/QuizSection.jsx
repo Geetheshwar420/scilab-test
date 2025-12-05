@@ -8,7 +8,7 @@ export default function QuizSection({ questions, onAnswer }) {
 
                     {q.type === 'mcq' && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            {q.options.map((opt) => (
+                            {q.options?.map((opt) => (
                                 <label key={opt}>
                                     <input
                                         type="radio"

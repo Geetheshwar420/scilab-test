@@ -108,8 +108,15 @@ export default function Exam() {
     useEffect(() => {
         fetchQuestions();
 
-        // Enforce Fullscreen
-        document.documentElement.requestFullscreen().catch(e => console.log(e));
+        // Enforce Fullscreen (attempt, but don't crash if blocked)
+        const enterFullscreen = async () => {
+            try {
+                await document.documentElement.requestFullscreen();
+            } catch (e) {
+                console.log("Fullscreen blocked:", e);
+            }
+        };
+        enterFullscreen();
 
         // Prevent tab switching
         const handleVisibilityChange = async () => {
