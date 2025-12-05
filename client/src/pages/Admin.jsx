@@ -19,7 +19,7 @@ export default function Admin() {
     const [description, setDescription] = useState('');
     const [qType, setQType] = useState('coding');
     const [codingQ, setCodingQ] = useState({
-        title: '', description: '', initial_code: '', solution_code: '', test_cases: '[]', points: 10
+        title: '', description: '', initial_code: '', expected_output: '', test_cases: '[]', points: 10
     });
     const [quizQ, setQuizQ] = useState({
         type: 'mcq', question: '', options: '[]', correct_answer: '', points: 5
@@ -185,7 +185,7 @@ export default function Admin() {
             body: JSON.stringify({ ...codingQ, exam_id: selectedExamId })
         });
         alert('Coding Question Added');
-        setCodingQ({ title: '', description: '', initial_code: '', solution_code: '', test_cases: '[]', points: 10 });
+        setCodingQ({ title: '', description: '', initial_code: '', expected_output: '', test_cases: '[]', points: 10 });
         fetchExistingQuestions();
     };
 
@@ -218,7 +218,7 @@ export default function Admin() {
         });
         alert('Question Updated');
         setEditingQuestion(null);
-        setCodingQ({ title: '', description: '', initial_code: '', solution_code: '', test_cases: '[]', points: 10 });
+        setCodingQ({ title: '', description: '', initial_code: '', expected_output: '', test_cases: '[]', points: 10 });
         fetchExistingQuestions();
     };
 
@@ -268,7 +268,7 @@ export default function Admin() {
             title: question.title,
             description: question.description,
             initial_code: question.initial_code,
-            solution_code: question.solution_code,
+            expected_output: question.expected_output,
             test_cases: JSON.stringify(question.test_cases),
             points: question.points
         });
@@ -291,7 +291,7 @@ export default function Admin() {
     const cancelEdit = () => {
         setEditingQuestion(null);
         setEditingType(null);
-        setCodingQ({ title: '', description: '', initial_code: '', solution_code: '', test_cases: '[]', points: 10 });
+        setCodingQ({ title: '', description: '', initial_code: '', expected_output: '', test_cases: '[]', points: 10 });
         setQuizQ({ type: 'mcq', question: '', options: '[]', correct_answer: '', points: 5 });
     };
 
@@ -532,7 +532,7 @@ export default function Admin() {
                                         <input className="input-field" placeholder="Title" value={codingQ.title} onChange={e => setCodingQ({ ...codingQ, title: e.target.value })} />
                                         <textarea className="input-field" placeholder="Description" value={codingQ.description} onChange={e => setCodingQ({ ...codingQ, description: e.target.value })} />
                                         <textarea className="input-field" placeholder="Initial Code" value={codingQ.initial_code} onChange={e => setCodingQ({ ...codingQ, initial_code: e.target.value })} style={{ fontFamily: 'monospace' }} />
-                                        <textarea className="input-field" placeholder="Solution Code" value={codingQ.solution_code} onChange={e => setCodingQ({ ...codingQ, solution_code: e.target.value })} style={{ fontFamily: 'monospace' }} />
+                                        <textarea className="input-field" placeholder="Expected Output (for auto-grading)" value={codingQ.expected_output} onChange={e => setCodingQ({ ...codingQ, expected_output: e.target.value })} style={{ fontFamily: 'monospace' }} />
                                         <textarea className="input-field" placeholder='Test Cases (JSON) e.g. [{"input": "1", "output": "1"}]' value={codingQ.test_cases} onChange={e => setCodingQ({ ...codingQ, test_cases: e.target.value })} style={{ fontFamily: 'monospace' }} />
                                         <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '-10px', marginBottom: '10px' }}>
                                             Format: <code>[&#123;"input": "arg1", "output": "expected"&#125;]</code>

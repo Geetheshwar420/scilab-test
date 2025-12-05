@@ -57,11 +57,11 @@ router.post('/create-exam', isAdmin, async (req, res) => {
 
 // Add Coding Question
 router.post('/add-coding-question', isAdmin, async (req, res) => {
-    const { exam_id, title, description, initial_code, solution_code, test_cases, points } = req.body;
+    const { exam_id, title, description, initial_code, expected_output, test_cases, points } = req.body;
 
     const { data, error } = await supabase
         .from('coding_questions')
-        .insert([{ exam_id, title, description, initial_code, solution_code, test_cases, points }])
+        .insert([{ exam_id, title, description, initial_code, expected_output, test_cases, points }])
         .select();
 
     if (error) return res.status(500).json({ error: error.message });
@@ -104,11 +104,11 @@ router.get('/exam-questions/:examId', isAdmin, async (req, res) => {
 // Update Coding Question
 router.put('/update-coding-question/:id', isAdmin, async (req, res) => {
     const { id } = req.params;
-    const { title, description, initial_code, solution_code, test_cases, points } = req.body;
+    const { title, description, initial_code, expected_output, test_cases, points } = req.body;
 
     const { data, error } = await supabase
         .from('coding_questions')
-        .update({ title, description, initial_code, solution_code, test_cases, points })
+        .update({ title, description, initial_code, expected_output, test_cases, points })
         .eq('id', id)
         .select();
 
