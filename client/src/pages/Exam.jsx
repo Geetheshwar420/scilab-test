@@ -185,6 +185,7 @@ export default function Exam() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
             },
             body: JSON.stringify({
                 exam_id: examId,
@@ -212,7 +213,9 @@ export default function Exam() {
         }));
 
         const interval = setInterval(async () => {
-            const res = await fetch(`${API_URL}/exam/result/${jobId}`);
+            const res = await fetch(`${API_URL}/exam/result/${jobId}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
             const data = await res.json();
 
             if (data.status !== 'pending' && data.status !== 'running') {
@@ -228,7 +231,10 @@ export default function Exam() {
         const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/exam/submit-quiz`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({
                 exam_id: examId,
                 question_id: questionId,
@@ -249,7 +255,10 @@ export default function Exam() {
 
         await fetch(`${API_URL}/exam/save-code`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({
                 exam_id: examId,
                 question_id: currentQId,

@@ -32,7 +32,10 @@ export default function Admin() {
     const [creationResults, setCreationResults] = useState(null);
 
     const fetchExams = useCallback(async () => {
-        const res = await fetch(`${API_URL}/admin/exams`);
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${API_URL}/admin/exams`, {
+            headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        });
         if (res.ok) {
             const data = await res.json();
             setExams(data);
@@ -50,7 +53,10 @@ export default function Admin() {
 
     const fetchBlockedUsers = useCallback(async () => {
         if (!selectedExamId) return;
-        const res = await fetch(`${API_URL}/admin/blocked-users/${selectedExamId}`);
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${API_URL}/admin/blocked-users/${selectedExamId}`, {
+            headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        });
         if (res.ok) {
             const data = await res.json();
             setBlockedUsers(data);
@@ -59,7 +65,10 @@ export default function Admin() {
 
     const fetchResults = useCallback(async () => {
         if (!selectedExamId) return;
-        const res = await fetch(`${API_URL}/admin/exam-results/${selectedExamId}`);
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${API_URL}/admin/exam-results/${selectedExamId}`, {
+            headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        });
         if (res.ok) {
             const data = await res.json();
             setResults(data);
@@ -68,7 +77,10 @@ export default function Admin() {
 
     const fetchExistingQuestions = useCallback(async () => {
         if (!selectedExamId) return;
-        const res = await fetch(`${API_URL}/admin/exam-questions/${selectedExamId}`);
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${API_URL}/admin/exam-questions/${selectedExamId}`, {
+            headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        });
         if (res.ok) {
             const data = await res.json();
             setExistingQuestions(data);
@@ -135,9 +147,13 @@ export default function Admin() {
     };
 
     const createExam = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/create-exam`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({ title, description })
         });
         alert('Exam Created');
@@ -148,15 +164,23 @@ export default function Admin() {
 
     const toggleExamStatus = async (exam) => {
         const endpoint = exam.is_active ? 'stop-exam' : 'start-exam';
-        await fetch(`${API_URL}/admin/${endpoint}/${exam.id}`, { method: 'POST' });
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`${API_URL}/admin/${endpoint}/${exam.id}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        });
         fetchExams();
     };
 
     const addCodingQuestion = async () => {
         if (!selectedExamId) return alert('Select an exam first');
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/add-coding-question`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({ ...codingQ, exam_id: selectedExamId })
         });
         alert('Coding Question Added');
@@ -166,9 +190,13 @@ export default function Admin() {
 
     const addQuizQuestion = async () => {
         if (!selectedExamId) return alert('Select an exam first');
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/add-quiz-question`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({ ...quizQ, exam_id: selectedExamId })
         });
         alert('Quiz Question Added');
@@ -178,9 +206,13 @@ export default function Admin() {
 
     const updateCodingQuestion = async () => {
         if (!editingQuestion) return;
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/update-coding-question/${editingQuestion.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify(codingQ)
         });
         alert('Question Updated');
@@ -191,9 +223,13 @@ export default function Admin() {
 
     const updateQuizQuestion = async () => {
         if (!editingQuestion) return;
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/update-quiz-question/${editingQuestion.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify(quizQ)
         });
         alert('Question Updated');
@@ -204,14 +240,22 @@ export default function Admin() {
 
     const deleteCodingQuestion = async (id) => {
         if (!confirm('Are you sure you want to delete this question?')) return;
-        await fetch(`${API_URL}/admin/delete-coding-question/${id}`, { method: 'DELETE' });
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`${API_URL}/admin/delete-coding-question/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        });
         alert('Question Deleted');
         fetchExistingQuestions();
     };
 
     const deleteQuizQuestion = async (id) => {
         if (!confirm('Are you sure you want to delete this question?')) return;
-        await fetch(`${API_URL}/admin/delete-quiz-question/${id}`, { method: 'DELETE' });
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch(`${API_URL}/admin/delete-quiz-question/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        });
         alert('Question Deleted');
         fetchExistingQuestions();
     };
@@ -258,9 +302,13 @@ export default function Admin() {
 
         if (usernames.length === 0) return alert('Please enter valid usernames');
 
+        const { data: { session } } = await supabase.auth.getSession();
         const res = await fetch(`${API_URL}/admin/create-students`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({ usernames })
         });
 
@@ -274,9 +322,13 @@ export default function Admin() {
     };
 
     const unblockUser = async (userId) => {
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch(`${API_URL}/admin/unblock-user`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({ exam_id: selectedExamId, user_id: userId })
         });
         fetchBlockedUsers();
