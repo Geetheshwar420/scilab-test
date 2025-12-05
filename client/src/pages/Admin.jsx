@@ -663,8 +663,7 @@ export default function Admin() {
                                     ) : (
                                         blockedUsers.map(u => (
                                             <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                                -                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{u.user_id}</td>
-                                                +                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{u.email || u.user_id}</td>
+                                                <td style={{ padding: '15px', fontFamily: 'monospace' }}>{u.email || u.user_id}</td>
                                                 <td style={{ padding: '15px' }}>
                                                     <span style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem' }}>Blocked</span>
                                                 </td>
