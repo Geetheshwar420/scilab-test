@@ -166,13 +166,13 @@ export default function Exam() {
         };
     }, [examId, isBlocked, fetchQuestions]);
 
-    const handleRunCode = async (code, input) => {
+    const executeCode = async (code, input) => {
         const currentQId = questions.coding[currentCodingQ]?.id;
         const currentCount = executionCounts[currentQId] || 0;
 
         if (currentCount >= 5) {
-            alert("Execution limit reached (5/5)");
-            return;
+            alert("Execution limit reached (5/5). Code will be saved without execution.");
+            return null;
         }
 
         setStatus('running');
@@ -202,7 +202,7 @@ export default function Exam() {
             const err = await res.json();
             setStatus('error');
             setOutput(err.error);
-            return;
+            return null;
         }
 
         const { jobId } = await res.json();
@@ -213,19 +213,26 @@ export default function Exam() {
             [currentQId]: (prev[currentQId] || 0) + 1
         }));
 
-        const interval = setInterval(async () => {
-            const res = await fetch(`${API_URL}/exam/result/${jobId}`, {
-                headers: { 'Authorization': `Bearer ${session?.access_token}` }
-            });
-            const data = await res.json();
+        return new Promise((resolve) => {
+            const interval = setInterval(async () => {
+                const res = await fetch(`${API_URL}/exam/result/${jobId}`, {
+                    headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                });
+                const data = await res.json();
 
-            if (data.status !== 'pending' && data.status !== 'running') {
-                clearInterval(interval);
-                setStatus(data.status);
-                setOutput(data.output);
-                setImageData(data.image_data);
-            }
-        }, 4000);
+                if (data.status !== 'pending' && data.status !== 'running') {
+                    clearInterval(interval);
+                    setStatus(data.status);
+                    setOutput(data.output);
+                    setImageData(data.image_data);
+                    resolve(data);
+                }
+            }, 4000);
+        });
+    };
+
+    const handleRunCode = async (code, input) => {
+        await executeCode(code, input);
     };
 
     const handleQuizAnswer = async (questionId, answer) => {
@@ -256,6 +263,10 @@ export default function Exam() {
         // Update local code state
         setCodeState(prev => ({ ...prev, [currentCodingQ]: code }));
 
+        // 1. Try to execute code first
+        await executeCode(code, input);
+
+        // 2. Save as submitted (regardless of execution result)
         try {
             const res = await fetch(`${API_URL}/exam/save-code`, {
                 method: 'POST',
@@ -275,14 +286,14 @@ export default function Exam() {
             if (res.ok) {
                 // Auto-navigate to next question or finish
                 if (currentCodingQ < questions.coding.length - 1) {
-                    if (window.confirm("Code saved successfully! Move to next question?")) {
+                    if (window.confirm("Code executed and saved! Move to next question?")) {
                         setCurrentCodingQ(prev => prev + 1);
                     } else {
                         // User cancelled navigation, but code is saved
                         alert("Code saved successfully. You can continue working on this question.");
                     }
                 } else {
-                    if (window.confirm("Code saved! This was the last question. Do you want to finish the exam?")) {
+                    if (window.confirm("Code executed and saved! This was the last question. Do you want to finish the exam?")) {
                         handleFinalSubmit();
                     } else {
                         // User cancelled finish, but code is saved
