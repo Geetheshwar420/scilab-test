@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { supabase } from '../lib/supabase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -74,7 +75,27 @@ export default function Admin() {
         }
     }, [selectedExamId]);
 
-    // Fetch data when tab or exam changes - this is the correct pattern for data fetching
+    const resetExam = async (userId) => {
+        if (!window.confirm('Are you sure you want to reset this student\'s exam attempt? This will delete all their submissions.')) return;
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${API_URL}/admin/reset-exam`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({ exam_id: selectedExamId, user_id: userId })
+        });
+
+        if (res.ok) {
+            alert('Exam attempt reset successfully.');
+            fetchResults();
+            if (activeTab === 'security') fetchBlockedUsers();
+        } else {
+            alert('Failed to reset exam.');
+        }
+    };
 
     useEffect(() => {
         const loadData = async () => {
@@ -84,6 +105,34 @@ export default function Admin() {
         };
         loadData();
     }, [activeTab, selectedExamId, fetchBlockedUsers, fetchResults, fetchExistingQuestions]);
+
+    const getStudentResults = () => {
+        const students = {};
+
+        results.coding.forEach(r => {
+            if (!students[r.user_id]) students[r.user_id] = {
+                id: r.user_id,
+                email: r.email,
+                codingScore: 0,
+                quizScore: 0,
+                lastActive: r.created_at
+            };
+            students[r.user_id].codingScore += (r.score || 0);
+        });
+
+        results.quiz.forEach(r => {
+            if (!students[r.user_id]) students[r.user_id] = {
+                id: r.user_id,
+                email: r.email,
+                codingScore: 0,
+                quizScore: 0,
+                lastActive: r.created_at
+            };
+            students[r.user_id].quizScore += (r.score || 0);
+        });
+
+        return Object.values(students);
+    };
 
     const createExam = async () => {
         await fetch(`${API_URL}/admin/create-exam`, {
@@ -292,33 +341,7 @@ export default function Admin() {
         }
     };
 
-    const getStudentResults = () => {
-        const students = {};
 
-        results.coding.forEach(r => {
-            if (!students[r.user_id]) students[r.user_id] = {
-                id: r.user_id,
-                email: r.email, // Capture email
-                codingScore: 0,
-                quizScore: 0,
-                lastActive: r.created_at
-            };
-            students[r.user_id].codingScore += (r.score || 0);
-        });
-
-        results.quiz.forEach(r => {
-            if (!students[r.user_id]) students[r.user_id] = {
-                id: r.user_id,
-                email: r.email, // Capture email
-                codingScore: 0,
-                quizScore: 0,
-                lastActive: r.created_at
-            };
-            students[r.user_id].quizScore += (r.score || 0);
-        });
-
-        return Object.values(students);
-    };
 
     const selectedExam = exams.find(e => e.id === selectedExamId);
 
@@ -717,9 +740,16 @@ export default function Admin() {
                                                     <button
                                                         onClick={() => downloadStudentPDF(student.id)}
                                                         className="btn"
-                                                        style={{ background: '#22c55e', padding: '6px 12px', fontSize: '0.85rem' }}
+                                                        style={{ background: '#22c55e', padding: '6px 12px', fontSize: '0.85rem', marginRight: '10px' }}
                                                     >
                                                         Download PDF
+                                                    </button>
+                                                    <button
+                                                        onClick={() => resetExam(student.id)}
+                                                        className="btn"
+                                                        style={{ background: '#ef4444', padding: '6px 12px', fontSize: '0.85rem' }}
+                                                    >
+                                                        Reset Attempt
                                                     </button>
                                                 </td>
                                             </tr>

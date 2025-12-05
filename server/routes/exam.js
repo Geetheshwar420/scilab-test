@@ -2,10 +2,27 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../utils/supabase');
 
-// Middleware to check auth (TODO: Implement proper auth check)
+// Middleware to check auth - Verify Supabase JWT token
 const requireAuth = async (req, res, next) => {
-    // Check Supabase JWT
-    next();
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No authorization token provided' });
+        }
+
+        const token = authHeader.substring(7);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        // Attach user to request for downstream use
+        req.user = user;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Authentication failed' });
+    }
 };
 
 // Get Questions for an Exam
@@ -19,7 +36,11 @@ router.get('/questions/:examId', requireAuth, async (req, res) => {
         .eq('id', examId)
         .single();
 
-    if (examError || !exam.is_active) {
+    if (examError || !exam) {
+        return res.status(404).json({ error: 'Exam not found' });
+    }
+
+    if (!exam.is_active) {
         return res.status(403).json({ error: 'Exam is not active' });
     }
 
@@ -53,7 +74,7 @@ router.post('/submit-quiz', requireAuth, async (req, res) => {
         .eq('id', question_id)
         .single();
 
-    if (qError) return res.status(500).json({ error: 'Question not found' });
+    if (qError || !question) return res.status(404).json({ error: 'Question not found' });
 
     let is_correct = false;
     if (question.type === 'mcq' || question.type === 'true_false') {
@@ -144,7 +165,7 @@ router.post('/run-code', requireAuth, async (req, res) => {
         .select()
         .single();
 
-    if (error) return res.status(500).json({ error: error.message });
+    if (error || !data) return res.status(500).json({ error: error?.message || 'Failed to create submission' });
 
     // In a real system, we might push to Redis/RabbitMQ here. 
     // For this simple setup, the Agent will poll the 'submissions' table where status='pending'.
@@ -172,7 +193,7 @@ router.post('/save-code', requireAuth, async (req, res) => {
         .select()
         .single();
 
-    if (error) return res.status(500).json({ error: error.message });
+    if (error || !data) return res.status(500).json({ error: error?.message || 'Failed to save code' });
 
     res.json({ success: true, submissionId: data.id });
 });

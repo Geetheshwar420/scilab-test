@@ -46,7 +46,7 @@ router.get('/jobs', requireAgentAuth, async (req, res) => {
         .eq('id', job.question_id)
         .single();
 
-    if (qError) return res.status(500).json({ error: 'Question not found' });
+    if (qError || !question) return res.status(404).json({ error: 'Question not found' });
 
     res.json({
         job: {

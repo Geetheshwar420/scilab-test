@@ -25,8 +25,6 @@ const pollJobs = async () => {
             'x-execution-mode': 'server' // Always server mode
         };
 
-
-
         const response = await axios.get(`${BACKEND_URL}/agent/jobs`, { headers });
         const { job } = response.data;
 
@@ -73,12 +71,8 @@ const processJob = async (job) => {
                 const dirs = await fs.readdir(root);
                 const scilabDir = dirs.find(d => d.toLowerCase().startsWith('scilab'));
                 if (scilabDir) {
-                    // Try Scilex.exe first (dedicated for -nwni)
-                    let candidate = path.join(root, scilabDir, 'bin', 'Scilex.exe');
-                    if (await fs.pathExists(candidate)) return candidate;
-
-                    // Fallback to WScilex-cli.exe
-                    candidate = path.join(root, scilabDir, 'bin', 'WScilex-cli.exe');
+                    // Use WScilex-cli.exe for command line execution
+                    const candidate = path.join(root, scilabDir, 'bin', 'WScilex-cli.exe');
                     if (await fs.pathExists(candidate)) return candidate;
                 }
             } catch (e) {
@@ -107,10 +101,10 @@ const processJob = async (job) => {
         const inputPath = path.join(tempDir, 'input.txt');
         await fs.writeFile(inputPath, job.input);
         // Pipe input.txt to Scilab
-        // Added -nwni to prevent UI popup and interaction
-        scilabCmd = `type "${inputPath}" | "${scilabPath}" -nwni -nb -f "${scriptPath}"`;
+        // Use -nw (No Window) instead of -nwni
+        scilabCmd = `type "${inputPath}" | "${scilabPath}" -nw -nb -f "${scriptPath}"`;
     } else {
-        scilabCmd = `"${scilabPath}" -nwni -nb -f "${scriptPath}"`;
+        scilabCmd = `"${scilabPath}" -nw -nb -f "${scriptPath}"`;
     }
 
     let output = '';
@@ -132,31 +126,55 @@ const processJob = async (job) => {
         }
     } catch (error) {
         output = (error.stdout || '') + (error.stderr || '');
-        if (error.killed) {
-            output += '\nExecution timed out.';
-        } else if (!output) {
-            output = error.message;
+
+        if (error.killed || error.signal === 'SIGTERM') {
+            output += '\n\n⏱️ Execution timed out after 60 seconds.';
+            status = 'failed';
+        } else if (error.code === 'ENOENT') {
+            output = 'Error: Scilab executable not found or not accessible.';
+            status = 'failed';
+        } else {
+            if (!output.trim()) {
+                output = `Execution error: ${error.message}`;
+            }
+            status = 'failed';
         }
-        status = 'failed';
+
+        console.error(`Job ${job.id} failed:`, error.message);
     }
 
-    // Submit result
-    try {
-        await axios.post(`${BACKEND_URL}/agent/job-result`, {
-            jobId: job.id,
-            output,
-            image: imageData,
-            status,
-            score
-        }, {
-            headers: { 'x-agent-key': AGENT_KEY }
-        });
-    } catch (error) {
-        console.error(`Error submitting result for job ${job.id}:`, error.message);
-    } finally {
-        // Cleanup
-        await fs.remove(tempDir).catch(err => console.error(`Failed to cleanup ${tempDir}:`, err.message));
+    // Submit result with retry logic
+    let retries = 3;
+    let submitted = false;
+
+    while (retries > 0 && !submitted) {
+        try {
+            await axios.post(`${BACKEND_URL}/agent/job-result`, {
+                jobId: job.id,
+                output,
+                image: imageData,
+                status,
+                score
+            }, {
+                headers: { 'x-agent-key': AGENT_KEY },
+                timeout: 10000
+            });
+            submitted = true;
+        } catch (error) {
+            retries--;
+            console.error(`Error submitting result for job ${job.id} (${3 - retries}/3):`, error.message);
+            if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+            }
+        }
     }
+
+    if (!submitted) {
+        console.error(`Failed to submit result for job ${job.id} after 3 attempts. Job may be stuck.`);
+    }
+
+    // Cleanup
+    await fs.remove(tempDir).catch(err => console.error(`Failed to cleanup ${tempDir}:`, err.message));
 };
 
 console.log('Executor Service Started (Concurrent Mode)');

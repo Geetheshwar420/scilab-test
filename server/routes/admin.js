@@ -2,11 +2,33 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../utils/supabase');
 
-// Middleware to check if user is admin (TODO: Implement proper admin check)
+// Middleware to check if user is admin - Verify role from JWT
 const isAdmin = async (req, res, next) => {
-    // For now, we'll assume the client sends a secret or we check a specific user ID
-    // In production, check req.user.role or similar from Supabase Auth
-    next();
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'No authorization token provided' });
+        }
+
+        const token = authHeader.substring(7);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return res.status(401).json({ error: 'Invalid or expired token' });
+        }
+
+        // Check if user has admin role (stored in user metadata)
+        const isAdminUser = user.email === 'geethu' || user.user_metadata?.role === 'admin';
+
+        if (!isAdminUser) {
+            return res.status(403).json({ error: 'Admin access required' });
+        }
+
+        req.user = user;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Authentication failed' });
+    }
 };
 
 // Get All Exams
@@ -115,19 +137,6 @@ router.delete('/delete-coding-question/:id', isAdmin, async (req, res) => {
 
     const { error } = await supabase
         .from('coding_questions')
-        .delete()
-        .eq('id', id);
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ success: true });
-});
-
-// Delete Quiz Question
-router.delete('/delete-quiz-question/:id', isAdmin, async (req, res) => {
-    const { id } = req.params;
-
-    const { error } = await supabase
-        .from('quiz_questions')
         .delete()
         .eq('id', id);
 
@@ -295,5 +304,38 @@ router.post('/create-students', isAdmin, async (req, res) => {
         results
     });
 });
+
+// Reset Exam Attempt
+router.post('/reset-exam', isAdmin, async (req, res) => {
+    const { exam_id, user_id } = req.body;
+
+    // Delete from submissions (Coding)
+    const { error: sError } = await supabase
+        .from('submissions')
+        .delete()
+        .eq('exam_id', exam_id)
+        .eq('user_id', user_id);
+
+    if (sError) {
+        console.error('Error deleting coding submissions:', sError);
+        return res.status(500).json({ error: sError.message });
+    }
+
+    // Delete from quiz_submissions
+    const { error: qError } = await supabase
+        .from('quiz_submissions')
+        .delete()
+        .eq('exam_id', exam_id)
+        .eq('user_id', user_id);
+
+    if (qError) {
+        console.error('Error deleting quiz submissions:', qError);
+        return res.status(500).json({ error: qError.message });
+    }
+
+    res.json({ success: true });
+});
+
+
 
 module.exports = router;
