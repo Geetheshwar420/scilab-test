@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import CodingWorkspace from '../components/CodingWorkspace';
 import QuizSection from '../components/QuizSection';
 import { supabase } from '../lib/supabase';
+import config from '../config';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = config.apiUrl;
 
 export default function Exam() {
     const { examId } = useParams();
