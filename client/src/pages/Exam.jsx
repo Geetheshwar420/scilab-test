@@ -31,12 +31,14 @@ export default function Exam() {
     const [executionCounts, setExecutionCounts] = useState({});
     const [error, setError] = useState(null);
     const [isBlocked, setIsBlocked] = useState(false);
-    const [userId, setUserId] = useState(null);
+
+
+    // State to hold code for each question
+    const [codeState, setCodeState] = useState({});
 
     const fetchQuestions = useCallback(async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user?.id) setUserId(session.user.id);
 
             // Check if blocked first
             if (session?.user?.id) {
@@ -67,14 +69,20 @@ export default function Exam() {
 
             if (!res.ok) {
                 if (res.status === 403) throw new Error('Exam is not active yet');
-                // If we have cache, don't throw error, just warn? 
-                // But if we have cache, we already set it.
                 if (!cachedData) throw new Error('Failed to load exam');
             } else {
                 const data = await res.json();
                 if (data.coding) {
                     setQuestions(data);
                     localStorage.setItem(`exam_questions_${examId}`, JSON.stringify(data));
+
+                    // Initialize code state
+                    const initialCodeState = {};
+                    data.coding.forEach((q, idx) => {
+                        // Use saved code if available (not implemented in API yet but good practice) or initial_code
+                        initialCodeState[idx] = q.initial_code || '';
+                    });
+                    setCodeState(initialCodeState);
                 }
             }
             setError(null);
@@ -162,19 +170,21 @@ export default function Exam() {
         setStatus('running');
         setOutput('Job queued...');
 
+        // Update local code state
+        setCodeState(prev => ({ ...prev, [currentCodingQ]: code }));
+
         const { data: { session } } = await supabase.auth.getSession();
         const res = await fetch(`${API_URL}/exam/run-code`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // 'Authorization': ... 
             },
             body: JSON.stringify({
                 exam_id: examId,
                 question_id: currentQId,
                 code,
                 input, // Send standard input
-                execution_mode: executionMode, // 'server' or 'local'
+                execution_mode: 'server', // Hardcoded to server
                 user_id: session?.user?.id
             })
         });
@@ -194,10 +204,7 @@ export default function Exam() {
             [currentQId]: (prev[currentQId] || 0) + 1
         }));
 
-        // Poll for result
-        let attempts = 0;
         const interval = setInterval(async () => {
-            attempts++;
             const res = await fetch(`${API_URL}/exam/result/${jobId}`);
             const data = await res.json();
 
@@ -206,9 +213,6 @@ export default function Exam() {
                 setStatus(data.status);
                 setOutput(data.output);
                 setImageData(data.image_data);
-            } else if (attempts > 10 && executionMode === 'local' && data.status === 'pending') {
-                // If pending for > 40 seconds in local mode
-                setOutput("⚠️ Job is still pending. \n\nIs your Local Executor running? \n\n1. Check your terminal window.\n2. If not running, download the script and run it.\n3. Or switch to 'Server Execution'.");
             }
         }, 4000);
     };
@@ -228,13 +232,15 @@ export default function Exam() {
     };
 
     const [activeTab, setActiveTab] = useState('coding'); // 'coding' or 'quiz'
-    const [executionMode, setExecutionMode] = useState('server'); // 'server' or 'local'
 
     const handleSubmitCode = async (code, input) => {
         const currentQId = questions.coding[currentCodingQ]?.id;
         const { data: { session } } = await supabase.auth.getSession();
 
-        const res = await fetch(`${API_URL}/exam/save-code`, {
+        // Update local code state
+        setCodeState(prev => ({ ...prev, [currentCodingQ]: code }));
+
+        await fetch(`${API_URL}/exam/save-code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -246,38 +252,8 @@ export default function Exam() {
             })
         });
 
-        if (res.ok) {
-            alert("Code submitted successfully!");
-        } else {
-            alert("Failed to submit code.");
-        }
+        // Removed confirmation alert as per request
     };
-
-    const handleDownloadExecutor = () => {
-        if (!userId) return;
-
-        const batContent = `@echo off
-echo Starting Exam Executor for User: ${userId}
-set USER_ID=${userId}
-set EXECUTION_MODE=local
-echo.
-echo Please ensure you are in the platform directory.
-echo Starting executor...
-node executor/index.js
-pause`;
-
-        const blob = new Blob([batContent], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'start_my_exam.bat';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-    };
-
-
 
     if (isBlocked) {
         return (
@@ -373,28 +349,6 @@ pause`;
                                 <span style={{ fontSize: '0.9em', color: executionsUsed >= 5 ? 'var(--color-error)' : 'var(--color-text-secondary)', fontWeight: 'bold' }}>
                                     Executions: {executionsUsed} / 5
                                 </span>
-                                {userId && (
-                                    <span style={{ fontSize: '0.8em', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: '4px', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}>
-                                        Executor ID: <code style={{ userSelect: 'all' }}>{userId}</code>
-                                    </span>
-                                )}
-                                <select
-                                    value={executionMode}
-                                    onChange={(e) => {
-                                        const mode = e.target.value;
-                                        setExecutionMode(mode);
-                                        if (mode === 'local') {
-                                            // Auto-download executor script
-                                            if (window.confirm("You selected Local Execution. Do you need to download your Executor Script?")) {
-                                                handleDownloadExecutor();
-                                            }
-                                        }
-                                    }}
-                                    style={{ padding: '5px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-background)', color: 'var(--color-text)' }}
-                                >
-                                    <option value="server">Server Execution</option>
-                                    <option value="local">Local Execution (My PC)</option>
-                                </select>
                             </div>
                         </div>
 
@@ -442,7 +396,8 @@ pause`;
 
                     <div style={{ flex: 1, overflow: 'hidden' }}>
                         <CodingWorkspace
-                            initialCode={questions.coding[currentCodingQ]?.initial_code}
+                            key={currentCodingQ} // Force re-render on question change to reset editor state if needed, or handle via prop
+                            initialCode={codeState[currentCodingQ] || questions.coding[currentCodingQ]?.initial_code}
                             onRun={handleRunCode}
                             onSubmit={handleSubmitCode}
                             output={output}

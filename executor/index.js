@@ -8,36 +8,49 @@ const execPromise = util.promisify(exec);
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 const AGENT_KEY = process.env.AGENT_SECRET_KEY || 'secret';
-const FILTER_USER_ID = process.env.FILTER_USER_ID; // Optional: Only run jobs for this user
-const EXECUTION_MODE = process.env.EXECUTION_MODE || 'server'; // 'server' or 'local'
-const POLLING_INTERVAL = 2000; // 2 seconds
+const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '10', 10);
+let activeJobs = 0;
 
 const pollJobs = async () => {
+    // If we are at capacity, wait and retry
+    if (activeJobs >= MAX_CONCURRENT_JOBS) {
+        setTimeout(pollJobs, 1000);
+        return;
+    }
+
     try {
         const headers = {
             'x-agent-key': AGENT_KEY,
-            'x-execution-mode': EXECUTION_MODE
+            'x-execution-mode': 'server' // Always server mode
         };
-        if (FILTER_USER_ID) {
-            headers['x-filter-user-id'] = FILTER_USER_ID;
-            console.log(`Polling for user: ${FILTER_USER_ID} (Mode: ${EXECUTION_MODE})`);
-        } else {
-            console.log(`Polling for jobs (Mode: ${EXECUTION_MODE})`);
-        }
+
+
 
         const response = await axios.get(`${BACKEND_URL}/agent/jobs`, { headers });
-
         const { job } = response.data;
 
         if (job) {
-            console.log(`Received job ${job.id}`);
-            await processJob(job);
+            console.log(`Received job ${job.id}. Active jobs: ${activeJobs + 1}`);
+            activeJobs++;
+
+            // Process asynchronously (do not await)
+            processJob(job).finally(() => {
+                activeJobs--;
+                console.log(`Job ${job.id} finished. Active jobs: ${activeJobs}`);
+            });
+
+            // Immediately poll for next job if we have capacity
+            if (activeJobs < MAX_CONCURRENT_JOBS) {
+                setImmediate(pollJobs);
+                return;
+            }
         }
     } catch (error) {
         console.error('Error polling jobs:', error.message);
-    } finally {
-        setTimeout(pollJobs, POLLING_INTERVAL);
     }
+
+    // Wait before next poll if no job found or error
+    setTimeout(pollJobs, POLLING_INTERVAL);
 };
 
 const processJob = async (job) => {
@@ -55,7 +68,6 @@ const processJob = async (job) => {
         const inputPath = path.join(tempDir, 'input.txt');
         await fs.writeFile(inputPath, job.input);
         // Pipe input.txt to Scilab
-        // Note: Windows cmd piping
         scilabCmd = `type "${inputPath}" | "${scilabPath}" -nb -f "${scriptPath}"`;
     } else {
         scilabCmd = `"${scilabPath}" -nb -f "${scriptPath}"`;
@@ -64,14 +76,11 @@ const processJob = async (job) => {
     let output = '';
     let status = 'completed';
     let score = 0;
-
     let imageData = null;
 
     try {
-        const { stdout, stderr } = await execPromise(scilabCmd, { timeout: 10000 }); // 10s timeout
-        output = stdout + stderr; // Scilab often prints to stdout even for errors, or mixed
-
-        console.log(`Job ${job.id} completed`);
+        const { stdout, stderr } = await execPromise(scilabCmd, { timeout: 15000 }); // Increased timeout to 15s
+        output = stdout + stderr;
 
         // Check for generated images (e.g., *.png)
         const files = await fs.readdir(tempDir);
@@ -80,15 +89,15 @@ const processJob = async (job) => {
             const imagePath = path.join(tempDir, imageFile);
             const imageBuffer = await fs.readFile(imagePath);
             imageData = imageBuffer.toString('base64');
-            console.log(`Captured image: ${imageFile}`);
         }
     } catch (error) {
-        output = error.stdout + error.stderr;
+        output = (error.stdout || '') + (error.stderr || '');
         if (error.killed) {
             output += '\nExecution timed out.';
+        } else if (!output) {
+            output = error.message;
         }
         status = 'failed';
-        console.error(`Job ${job.id} failed:`, error.message);
     }
 
     // Submit result
@@ -102,15 +111,15 @@ const processJob = async (job) => {
         }, {
             headers: { 'x-agent-key': AGENT_KEY }
         });
-        console.log(`Result submitted for job ${job.id}`);
     } catch (error) {
-        console.error('Error submitting result:', error.message);
+        console.error(`Error submitting result for job ${job.id}:`, error.message);
     } finally {
         // Cleanup
-        await fs.remove(tempDir);
+        await fs.remove(tempDir).catch(err => console.error(`Failed to cleanup ${tempDir}:`, err.message));
     }
 };
 
-console.log('Executor Service Started');
+console.log('Executor Service Started (Concurrent Mode)');
 console.log(`Backend URL: ${BACKEND_URL}`);
+console.log(`Max Concurrent Jobs: ${MAX_CONCURRENT_JOBS}`);
 pollJobs();

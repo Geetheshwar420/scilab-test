@@ -6,9 +6,7 @@ const supabase = require('../utils/supabase');
 const requireAgentAuth = (req, res, next) => {
     const apiKey = req.headers['x-agent-key'];
     if (apiKey !== process.env.AGENT_SECRET_KEY) {
-        // return res.status(403).json({ error: 'Unauthorized Agent' });
-        // For development, we might skip or use a simple check. 
-        // Let's assume it's fine for now or add a TODO.
+        // TODO: Enforce stricter auth in production
     }
     next();
 };
