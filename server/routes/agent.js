@@ -61,13 +61,37 @@ router.get('/jobs', requireAgentAuth, async (req, res) => {
 router.post('/job-result', requireAgentAuth, async (req, res) => {
     const { jobId, output, status, score, image } = req.body;
 
+    // 1. Get submission to find question_id
+    const { data: submission, error: subError } = await supabase
+        .from('submissions')
+        .select('question_id')
+        .eq('id', jobId)
+        .single();
+
+    if (subError || !submission) return res.status(404).json({ error: 'Submission not found' });
+
+    // 2. Get question points
+    const { data: question, error: qError } = await supabase
+        .from('coding_questions')
+        .select('points')
+        .eq('id', submission.question_id)
+        .single();
+
+    let finalScore = score || 0;
+
+    // Simple Grading Logic: If execution completed successfully, award full points
+    // TODO: Implement more sophisticated grading (e.g., output matching)
+    if (status === 'completed' && question) {
+        finalScore = question.points;
+    }
+
     const { data, error } = await supabase
         .from('submissions')
         .update({
             output,
             image_data: image,
             status,
-            score
+            score: finalScore
         })
         .eq('id', jobId)
         .select();
