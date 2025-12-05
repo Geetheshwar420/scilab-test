@@ -252,6 +252,7 @@ export default function Exam() {
         });
     };
 
+    const [activeTab, setActiveTab] = useState('coding');
     const [modalConfig, setModalConfig] = useState({ show: false, message: '', onConfirm: null });
 
     const showConfirm = (message, onConfirm) => {
