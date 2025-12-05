@@ -350,32 +350,58 @@ export default function Admin() {
             doc.text(`Student: ${studentEmail}`, 14, 30);
             doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 38);
 
-            // Coding Submissions
+            // Coding Submissions - Show ALL submissions for this attempt (chronological log)
             doc.setFontSize(14);
-            doc.text('Coding Submissions', 14, 50);
+            doc.text('Coding Submission Log', 14, 50);
 
-            const codingData = results.coding.filter(r => r.user_id === userId).map((r, i) => [
-                `Q${i + 1}`,
-                r.code?.substring(0, 100) + (r.code?.length > 100 ? '...' : ''),
-                r.score || 0
-            ]);
+            const userCodingSubs = results.coding.filter(r => r.user_id === userId);
+
+            // Sort by creation time
+            userCodingSubs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+            // Map to array
+            const codingData = userCodingSubs.map((r, i) => {
+                // Try to find question title
+                const question = existingQuestions.coding.find(q => q.id === r.question_id);
+                const title = question ? question.title : `Question ID: ${r.question_id}`;
+                const time = new Date(r.created_at).toLocaleTimeString();
+
+                return [
+                    time,
+                    title,
+                    r.code?.substring(0, 50) + (r.code?.length > 50 ? '...' : ''),
+                    r.output?.substring(0, 50) + (r.output?.length > 50 ? '...' : ''),
+                    r.score || 0
+                ];
+            });
 
             autoTable(doc, {
                 startY: 55,
-                head: [['Question', 'Code Snippet', 'Score']],
+                head: [['Time', 'Question', 'Code', 'Output', 'Score']],
                 body: codingData,
+                columnStyles: {
+                    0: { cellWidth: 25 }, // Time
+                    1: { cellWidth: 30 }, // Question
+                    2: { cellWidth: 50 }, // Code
+                    3: { cellWidth: 50 }, // Output
+                    4: { cellWidth: 15 }  // Score
+                }
             });
 
             // Quiz Submissions
             const finalY = doc.lastAutoTable.finalY || 60;
             doc.text('Quiz Submissions', 14, finalY + 15);
 
-            const quizData = results.quiz.filter(r => r.user_id === userId).map((r, i) => [
-                `Q${i + 1}`,
-                r.answer,
-                r.is_correct ? 'Correct' : 'Incorrect',
-                r.score || 0
-            ]);
+            const quizData = results.quiz.filter(r => r.user_id === userId).map((r, i) => {
+                const question = existingQuestions.quiz.find(q => q.id === r.question_id);
+                const title = question ? question.question.substring(0, 30) + '...' : `Q${i + 1}`;
+                return [
+                    title,
+                    r.answer,
+                    r.is_correct ? 'Correct' : 'Incorrect',
+                    r.score || 0
+                ];
+            });
 
             autoTable(doc, {
                 startY: finalY + 20,

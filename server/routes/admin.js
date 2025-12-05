@@ -333,6 +333,18 @@ router.post('/reset-exam', isAdmin, async (req, res) => {
         return res.status(500).json({ error: qError.message });
     }
 
+    // Unblock user if they were blocked
+    const { error: bError } = await supabase
+        .from('blocked_students')
+        .delete()
+        .eq('exam_id', exam_id)
+        .eq('user_id', user_id);
+
+    if (bError) {
+        console.error('Error unblocking user:', bError);
+        // Don't fail the whole request if this fails, but log it
+    }
+
     res.json({ success: true });
 });
 
