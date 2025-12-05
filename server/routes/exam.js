@@ -223,4 +223,55 @@ router.post('/block-user', requireAuth, async (req, res) => {
     res.json({ success: true });
 });
 
+// Finish Exam & Get Results
+router.post('/finish-exam', requireAuth, async (req, res) => {
+    const { exam_id, user_id } = req.body;
+
+    // 1. Calculate Quiz Score
+    const { data: quizSubs, error: quizError } = await supabase
+        .from('quiz_submissions')
+        .select('score')
+        .eq('exam_id', exam_id)
+        .eq('user_id', user_id);
+
+    if (quizError) return res.status(500).json({ error: quizError.message });
+
+    const quizScore = quizSubs.reduce((acc, curr) => acc + (curr.score || 0), 0);
+
+    // 2. Calculate Coding Score (Latest submission per question)
+    // First, get list of coding questions to know what to look for
+    const { data: codingQuestions, error: cqError } = await supabase
+        .from('coding_questions')
+        .select('id')
+        .eq('exam_id', exam_id);
+
+    if (cqError) return res.status(500).json({ error: cqError.message });
+
+    let codingScore = 0;
+
+    // For each question, find the latest submission
+    for (const q of codingQuestions) {
+        const { data: sub, error: subError } = await supabase
+            .from('submissions')
+            .select('score')
+            .eq('exam_id', exam_id)
+            .eq('user_id', user_id)
+            .eq('question_id', q.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (sub && !subError) {
+            codingScore += (sub.score || 0);
+        }
+    }
+
+    res.json({
+        success: true,
+        quizScore,
+        codingScore,
+        totalScore: quizScore + codingScore
+    });
+});
+
 module.exports = router;

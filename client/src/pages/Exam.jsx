@@ -262,6 +262,59 @@ export default function Exam() {
         // Removed confirmation alert as per request
     };
 
+    const [examResult, setExamResult] = useState(null);
+
+    const handleFinalSubmit = async () => {
+        if (!window.confirm("Are you sure you want to finish the exam? You cannot go back.")) return;
+
+        const { data: { session } } = await supabase.auth.getSession();
+        try {
+            const res = await fetch(`${API_URL}/exam/finish-exam`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({
+                    exam_id: examId,
+                    user_id: session?.user?.id
+                })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setExamResult(data);
+            } else {
+                alert("Failed to submit exam. Please try again.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("An error occurred.");
+        }
+    };
+
+    if (examResult) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--color-background)', color: 'var(--color-text)' }}>
+                <div style={{ padding: '40px', borderRadius: '10px', background: 'var(--color-surface)', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '500px', width: '90%' }}>
+                    <h1 style={{ color: 'var(--color-primary)', marginBottom: '20px' }}>Exam Completed!</h1>
+                    <div style={{ fontSize: '1.2rem', marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <p><strong>Quiz Score:</strong> {examResult.quizScore}</p>
+                        <p><strong>Coding Score:</strong> {examResult.codingScore}</p>
+                        <div style={{ borderTop: '1px solid var(--color-border)', margin: '10px 0' }}></div>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Total Score: {examResult.totalScore}</p>
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        style={{ padding: '12px 30px', fontSize: '1.1em', cursor: 'pointer', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '5px', transition: 'transform 0.2s' }}
+                    >
+                        Logout
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (isBlocked) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fee2e2', color: '#991b1b' }}>
@@ -294,6 +347,26 @@ export default function Exam() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+            {/* Header with Timer (optional) and Submit */}
+            <div style={{ padding: '10px 20px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0, color: 'var(--color-primary)' }}>Physics Exam Platform</h2>
+                <button
+                    onClick={handleFinalSubmit}
+                    style={{
+                        padding: '8px 20px',
+                        background: '#10b981', // Green
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                >
+                    Finish Exam
+                </button>
+            </div>
+
             {/* Mobile Tab Navigation */}
             <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
                 <button
