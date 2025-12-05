@@ -277,10 +277,16 @@ export default function Exam() {
                 if (currentCodingQ < questions.coding.length - 1) {
                     if (window.confirm("Code saved successfully! Move to next question?")) {
                         setCurrentCodingQ(prev => prev + 1);
+                    } else {
+                        // User cancelled navigation, but code is saved
+                        alert("Code saved successfully. You can continue working on this question.");
                     }
                 } else {
                     if (window.confirm("Code saved! This was the last question. Do you want to finish the exam?")) {
                         handleFinalSubmit();
+                    } else {
+                        // User cancelled finish, but code is saved
+                        alert("Code saved successfully. You can review your answers before finishing.");
                     }
                 }
             } else {
